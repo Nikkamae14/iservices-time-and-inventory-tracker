@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laptop Inventory Manager</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-500: #6b7280;
+            --gray-700: #374151;
+            --gray-900: #111827;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--gray-900);
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 1400px;
+            display: none;
+            flex-direction: column;
+            max-height: 95vh;
+        }
+
+        .container.active {
+            display: flex;
+        }
+
+        /* HEADER */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* LOGIN SCREEN */
+        .login-screen {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+        }
+
+        .login-screen.active {
+            display: flex;
+        }
+
+        .login-form {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-form h2 {
+            margin-bottom: 30px;
+            color: var(--gray-900);
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: var(--gray-300);
+            color: var(--gray-900);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-400);
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 12px;
+            width: auto;
+        }
+
+        .error {
+            color: var(--danger);
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* CONTENT */
+        .content {
+            padding: 30px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--gray-200);
+            margin-bottom: 30px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-500);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            position: relative;
+            bottom: -2px;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* FORMS */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-section {
+            background: var(--gray-50);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        /* TABLES */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            background: var(--gray-100);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--gray-700);
+            border-bottom: 2px solid var(--gray-200);
+            white-space: nowrap;
+        }
+
+        th[onclick] {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th[onclick]:hover {
+            background: var(--gray-200);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        tr:hover {
+            background: var(--gray-50);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        /* STATUS BADGES */
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-active {
+            background: #dbeafe;
+            color: #0369a1;
+        }
+
+        .badge-unassigned {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-retired {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-repair {
+            background: #fce7f3;
+            color: #831843;
+        }
+
+        .recovery-key-masked {
+            cursor: pointer;
+            color: var(--gray-500);
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            user-select: none;
+        }
+
+        .recovery-key-masked:hover {
+            text-decoration: underline;
+        }
+
+        .recovery-key-cell {
+            max-width: 300px;
+            word-break: break-all;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: var(--gray-900);
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--gray-500);
+            float: right;
+            margin-top: -5px;
+        }
+
+        .close-modal:hover {
+            color: var(--gray-900);
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #0369a1;
+            border-left: 4px solid #0369a1;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border-left: 4px solid #10b981;
+        }
+
+        .alert-danger {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border-left: 4px solid #f59e0b;
+        }
+
+        /* STATS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card.success { border-left-color: var(--success); }
+        .stat-card.warning { border-left-color: var(--warning); }
+        .stat-card.danger { border-left-color: var(--danger); }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-card.success .stat-value { color: var(--success); }
+        .stat-card.warning .stat-value { color: var(--warning); }
+        .stat-card.danger .stat-value { color: var(--danger); }
+
+        .stat-label {
+            color: var(--gray-500);
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .tabs {
+                gap: 10px;
+            }
+
+            .tab-btn {
+                font-size: 12px;
+            }
+
+            table {
+                font-size: 11px;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- LOGIN SCREEN -->
+    <div class="login-screen active">
+        <div class="login-form">
+            <h2>💻 Laptop Inventory</h2>
+            <div id="loginError" class="error"></div>
+            <div class="form-group">
+                <label>Admin Password</label>
+                <input type="password" id="adminPassword" placeholder="Enter admin password">
+            </div>
+            <button class="btn btn-primary" onclick="adminLogin()">Login</button>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div class="container" id="appContainer">
+        <div class="header">
+            <div>
+                <h1>💻 Laptop Inventory Manager</h1>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="content">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('inventory')">Inventory</button>
+                <button class="tab-btn" onclick="switchTab('add')">Add Laptop</button>
+                <button class="tab-btn" onclick="switchTab('reports')">Reports</button>
+                <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
+            </div>
+
+            <!-- INVENTORY TAB -->
+            <div id="inventory" class="tab-content active">
+                <div class="stats-grid" id="statsGrid"></div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="cursor: pointer;" onclick="sortBy('index')">#</th>
+                                <th style="cursor: pointer;" onclick="sortBy('assetTag')">Asset Tag</th>
+                                <th style="cursor: pointer;" onclick="sortBy('model')">Model</th>
+                                <th style="cursor: pointer;" onclick="sortBy('serial')">Serial #</th>
+                                <th style="cursor: pointer;" onclick="sortBy('employee')">Employee</th>
+                                <th style="cursor: pointer;" onclick="sortBy('osVersion')">OS Version</th>
+                                <th style="cursor: pointer;" onclick="sortBy('ram')">RAM</th>
+                                <th style="cursor: pointer;" onclick="sortBy('storage')">Storage</th>
+                                <th style="cursor: pointer;" onclick="sortBy('bitLockerKeyId')">BitLocker Key ID</th>
+                                <th style="cursor: pointer;" onclick="sortBy('bitLockerRecoveryKey')">BitLocker Recovery Key</th>
+                                <th style="cursor: pointer;" onclick="sortBy('purchaseDate')">Purchase Date</th>
+                                <th style="cursor: pointer;" onclick="sortBy('dateIssued')">Date Issued</th>
+                                <th style="cursor: pointer;" onclick="sortBy('status')">Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ADD LAPTOP TAB -->
+            <div id="add" class="tab-content">
+                <div class="form-section">
+                    <h3>Add New Laptop</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Asset Tag *</label>
+                            <input type="text" id="assetTag" placeholder="e.g., LT-001">
+                        </div>
+                        <div class="form-group">
+                            <label>Model *</label>
+                            <input type="text" id="model" placeholder="e.g., Dell XPS 15">
+                        </div>
+                        <div class="form-group">
+                            <label>Serial Number *</label>
+                            <input type="text" id="serial" placeholder="Serial number">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Assigned Employee</label>
+                            <input type="text" id="employee" placeholder="Employee name">
+                        </div>
+                        <div class="form-group">
+                            <label>RAM</label>
+                            <input type="text" id="ram" placeholder="e.g., 16GB">
+                        </div>
+                        <div class="form-group">
+                            <label>Storage</label>
+                            <input type="text" id="storage" placeholder="e.g., 512GB SSD">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Purchase Date *</label>
+                            <input type="date" id="purchaseDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Date Issued</label>
+                            <input type="date" id="dateIssued">
+                        </div>
+                        <div class="form-group">
+                            <label>OS Version</label>
+                            <input type="text" id="osVersion" placeholder="Windows 11 Pro">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>BitLocker Key ID</label>
+                            <input type="text" id="bitLockerKeyId" placeholder="BL-2024-...">
+                        </div>
+                        <div class="form-group">
+                            <label>BitLocker Recovery Key</label>
+                            <input type="password" id="bitLockerRecoveryKey" placeholder="Recovery key (hidden for security)">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <textarea id="notes" placeholder="Additional notes" style="width: 100%; padding: 12px; border: 1px solid var(--gray-300); border-radius: 6px; min-height: 80px;"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Status *</label>
+                            <select id="status" style="width: 100%; padding: 12px; border: 1px solid var(--gray-300); border-radius: 6px;">
+                                <option value="Active">Active (In Use)</option>
+                                <option value="Unassigned">Unassigned</option>
+                                <option value="Repair">In Repair</option>
+                                <option value="Retired">Retired</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success" onclick="addLaptop()" style="width: auto; padding: 12px 30px;">Add Laptop</button>
+                    <div id="addMessage" style="margin-top: 15px;"></div>
+                </div>
+            </div>
+
+            <!-- REPORTS TAB -->
+            <div id="reports" class="tab-content">
+                <div class="form-section">
+                    <h3>📊 Generate Reports</h3>
+                    <p style="margin-bottom: 20px; color: var(--gray-500);">Export inventory data to Excel with multiple views</p>
+                    <button class="btn btn-success" onclick="exportAllReports()" style="width: auto; padding: 12px 30px; margin-right: 10px;">📥 Export All Reports</button>
+                    <div id="exportMessage" style="margin-top: 15px;"></div>
+                </div>
+
+                <h3 style="margin-top: 30px; margin-bottom: 20px;">Report Preview</h3>
+
+                <div style="background: var(--gray-50); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 15px;">📋 Inventory List</h4>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Asset Tag</th>
+                                    <th>Model</th>
+                                    <th>Employee</th>
+                                    <th>Status</th>
+                                    <th>Age (Years)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportPreviewInventory"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="background: var(--gray-50); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 15px;">📊 Status Report</h4>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Count</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportPreviewStatus"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="background: var(--gray-50); padding: 20px; border-radius: 8px;">
+                    <h4 style="margin-bottom: 15px;">👥 Employee Assignments</h4>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Asset Tag</th>
+                                    <th>Model</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportPreviewEmployees"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETTINGS TAB -->
+            <div id="settings" class="tab-content">
+                <div class="form-section">
+                    <h3>📁 OneDrive Setup</h3>
+                    <div class="alert alert-info">
+                        <strong>Important:</strong> Follow these steps to sync data across all devices:
+                    </div>
+                    <div style="background: var(--gray-100); padding: 20px; border-radius: 8px; margin-bottom: 20px; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.8;">
+                        <strong>Step 1:</strong> Create a folder in OneDrive (e.g., "LaptopInventory")<br><br>
+                        <strong>Step 2:</strong> Upload the laptop_inventory.html file to that folder<br><br>
+                        <strong>Step 3:</strong> Right-click folder → Share → "Edit" permissions<br><br>
+                        <strong>Step 4:</strong> A laptopInventoryData.json file will auto-create on first save<br><br>
+                        ✅ All laptops will now see the SAME data in real-time!
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>💾 Data Management</h3>
+                    <p style="margin-bottom: 20px; color: var(--gray-500);">Backup and restore your inventory</p>
+                    
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+                        <button class="btn btn-primary" onclick="downloadDataAsJson()" style="width: auto; padding: 12px 20px;">
+                            📥 Download Backup (JSON)
+                        </button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()" style="width: auto; padding: 12px 20px;">
+                            📤 Restore Backup (JSON)
+                        </button>
+                        <button class="btn btn-secondary" onclick="document.getElementById('csvInput').click()" style="width: auto; padding: 12px 20px;">
+                            📤 Import from CSV
+                        </button>
+                        <button class="btn btn-danger" onclick="confirmClearAllData()" style="width: auto; padding: 12px 20px;">
+                            🗑️ Clear All Data
+                        </button>
+                    </div>
+                    <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="handleFileImport(event)">
+                    <input type="file" id="csvInput" accept=".csv" style="display: none;" onchange="handleCSVImport(event)">
+                    <div id="dataManagementMessage" style="margin-top: 15px;"></div>
+                </div>
+
+                <div class="form-section">
+                    <h3>ℹ️ Inventory Summary</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary);">
+                            <div style="font-size: 28px; font-weight: 700; color: var(--primary);" id="totalLaptops">0</div>
+                            <div style="color: var(--gray-500); font-size: 12px; margin-top: 5px;">Total Laptops</div>
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid var(--success);">
+                            <div style="font-size: 28px; font-weight: 700; color: var(--success);" id="totalActive">0</div>
+                            <div style="color: var(--gray-500); font-size: 12px; margin-top: 5px;">Active</div>
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid var(--warning);">
+                            <div style="font-size: 28px; font-weight: 700; color: var(--warning);" id="totalUnassigned">0</div>
+                            <div style="color: var(--gray-500); font-size: 12px; margin-top: 5px;">Unassigned</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT MODAL -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeEditModal()">×</button>
+            <div class="modal-header">
+                <h2>Edit Laptop</h2>
+            </div>
+            <div id="editError" class="error"></div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Asset Tag</label>
+                    <input type="text" id="editAssetTag" readonly style="background: var(--gray-100);">
+                </div>
+                <div class="form-group">
+                    <label>Model</label>
+                    <input type="text" id="editModel">
+                </div>
+                <div class="form-group">
+                    <label>Serial Number</label>
+                    <input type="text" id="editSerial">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Employee</label>
+                    <input type="text" id="editEmployee">
+                </div>
+                <div class="form-group">
+                    <label>RAM</label>
+                    <input type="text" id="editRam">
+                </div>
+                <div class="form-group">
+                    <label>Storage</label>
+                    <input type="text" id="editStorage">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Purchase Date</label>
+                    <input type="date" id="editPurchaseDate">
+                </div>
+                <div class="form-group">
+                    <label>Date Issued</label>
+                    <input type="date" id="editDateIssued">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>OS Version</label>
+                    <input type="text" id="editOsVersion" placeholder="Windows 11 Pro">
+                </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>BitLocker Key ID</label>
+                    <input type="text" id="editBitLockerKeyId" placeholder="BL-2024-...">
+                </div>
+                <div class="form-group">
+                    <label>BitLocker Recovery Key</label>
+                    <input type="password" id="editBitLockerRecoveryKey" placeholder="Recovery key (hidden for security)">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="editStatus" style="width: 100%; padding: 12px; border: 1px solid var(--gray-300); border-radius: 6px;">
+                        <option value="Active">Active (In Use)</option>
+                        <option value="Unassigned">Unassigned</option>
+                        <option value="Repair">In Repair</option>
+                        <option value="Retired">Retired</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="editNotes" style="width: 100%; padding: 12px; border: 1px solid var(--gray-300); border-radius: 6px; font-family: inherit; resize: vertical; min-height: 80px;"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="saveLaptopEdit()" style="flex: 1;">Save Changes</button>
+                <button class="btn btn-danger" id="deleteBtn" onclick="deleteLaptop()" style="flex: 1;">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE CONFIRMATION MODAL -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <h2>Confirm Delete</h2>
+            <p id="deleteMessage" style="margin: 20px 0; color: var(--gray-500);"></p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-danger" id="confirmDeleteBtn" style="flex: 1;">Delete</button>
+                <button class="btn btn-secondary" onclick="closeDeleteModal()" style="flex: 1;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== DATA MANAGEMENT ====================
+        const ADMIN_PASSWORD = 'admin123';
+        const DATA_FILE_NAME = 'laptopInventoryData.json';
+        let data = {
+            laptops: [],
+            version: 1
+        };
+
+        let currentEditAssetTag = null;
+        let isSyncing = false;
+
+        // Load data from OneDrive or localStorage fallback
+        async function loadData() {
+            try {
+                const stored = localStorage.getItem('laptopInventoryData');
+                if (stored) {
+                    try {
+                        data = JSON.parse(stored);
+                    } catch (e) {
+                        console.error('Error parsing localStorage:', e);
+                    }
+                }
+                // Also try to load from OneDrive (shared folder)
+                await syncDataFromOneDrive();
+            } catch (e) {
+                console.log('OneDrive sync not available, using local data');
+            }
+        }
+
+        function saveData() {
+            // Save to localStorage first
+            localStorage.setItem('laptopInventoryData', JSON.stringify(data));
+            // Try to sync to OneDrive in background
+            syncDataToOneDrive().catch(e => {
+                console.log('OneDrive offline, data saved locally');
+            });
+        }
+
+        async function syncDataFromOneDrive() {
+            // Try to fetch from OneDrive folder
+            // This assumes laptopInventoryData.json is in a shared OneDrive folder
+            try {
+                const response = await fetch('laptopInventoryData.json');
+                if (response.ok) {
+                    const cloudData = await response.json();
+                    if (cloudData && cloudData.laptops) {
+                        data = cloudData;
+                        localStorage.setItem('laptopInventoryData', JSON.stringify(data));
+                    }
+                }
+            } catch (e) {
+                // File doesn't exist yet or OneDrive not configured
+            }
+        }
+
+        async function syncDataToOneDrive() {
+            // This will work if laptopInventoryData.json is in OneDrive shared folder
+            try {
+                await fetch('laptopInventoryData.json', {
+                    method: 'PUT',
+                    body: JSON.stringify(data, null, 2),
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            } catch (e) {
+                // OneDrive not available
+            }
+        }
+
+        // Export data as JSON file
+        function downloadDataAsJson() {
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `laptop_inventory_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Import data from JSON file
+        function importDataFromJson(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    data = imported;
+                    saveData();
+                    loadInventory();
+                    updateStats();
+                    updateReportPreviews();
+                    showAlert('Data imported successfully!', 'success');
+                } catch (err) {
+                    showAlert('Error importing data: ' + err.message, 'danger');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ==================== AUTHENTICATION ====================
+        function adminLogin() {
+            const password = document.getElementById('adminPassword').value;
+            if (password !== ADMIN_PASSWORD) {
+                document.getElementById('loginError').textContent = 'Incorrect password';
+                return;
+            }
+
+            document.querySelector('.login-screen').classList.remove('active');
+            document.getElementById('appContainer').classList.add('active');
+            loadInventory();
+            updateStats();
+            updateReportPreviews();
+
+            document.getElementById('adminPassword').value = '';
+        }
+
+        function logout() {
+            document.getElementById('appContainer').classList.remove('active');
+            document.querySelector('.login-screen').classList.add('active');
+            document.getElementById('loginError').textContent = '';
+            document.getElementById('adminPassword').value = '';
+        }
+
+        // ==================== INVENTORY MANAGEMENT ====================
+        function addLaptop() {
+            const assetTag = document.getElementById('assetTag').value.trim();
+            const model = document.getElementById('model').value.trim();
+            const serial = document.getElementById('serial').value.trim();
+            const employee = document.getElementById('employee').value.trim();
+            const ram = document.getElementById('ram').value.trim();
+            const storage = document.getElementById('storage').value.trim();
+            const purchaseDate = document.getElementById('purchaseDate').value;
+            const dateIssued = document.getElementById('dateIssued').value;
+            const osVersion = document.getElementById('osVersion').value.trim();
+            const bitLockerKeyId = document.getElementById('bitLockerKeyId').value.trim();
+            const bitLockerRecoveryKey = document.getElementById('bitLockerRecoveryKey').value.trim();
+            const status = document.getElementById('status').value;
+            const notes = document.getElementById('notes').value.trim();
+
+            if (!assetTag || !model || !serial || !purchaseDate) {
+                showMessage('addMessage', 'Please fill in required fields', 'danger');
+                return;
+            }
+
+            if (data.laptops.find(l => l.assetTag === assetTag)) {
+                showMessage('addMessage', 'Asset Tag already exists', 'danger');
+                return;
+            }
+
+            data.laptops.push({
+                assetTag,
+                model,
+                serial,
+                employee: employee || 'Unassigned',
+                ram,
+                storage,
+                osVersion,
+                bitLockerKeyId,
+                bitLockerRecoveryKey,
+                purchaseDate,
+                dateIssued,
+                status,
+                notes,
+                addedDate: new Date().toISOString()
+            });
+
+            saveData();
+            loadInventory();
+            updateStats();
+            showMessage('addMessage', 'Laptop added successfully!', 'success');
+
+            // Clear form
+            document.getElementById('assetTag').value = '';
+            document.getElementById('model').value = '';
+            document.getElementById('serial').value = '';
+            document.getElementById('employee').value = '';
+            document.getElementById('ram').value = '';
+            document.getElementById('storage').value = '';
+            document.getElementById('purchaseDate').value = '';
+            document.getElementById('osVersion').value = '';
+            document.getElementById('bitLockerKeyId').value = '';
+            document.getElementById('bitLockerRecoveryKey').value = '';
+            document.getElementById('status').value = 'Active';
+            document.getElementById('notes').value = '';
+        }
+
+        function loadInventory() {
+            const table = document.getElementById('inventoryTable');
+            table.innerHTML = '';
+
+            data.laptops.forEach((laptop, index) => {
+                const purchaseDate = new Date(laptop.purchaseDate);
+                const today = new Date();
+                const ageYears = ((today - purchaseDate) / (1000 * 60 * 60 * 24 * 365)).toFixed(1);
+
+                const statusBadge = {
+                    'Active': 'badge-active',
+                    'Unassigned': 'badge-unassigned',
+                    'Repair': 'badge-repair',
+                    'Retired': 'badge-retired'
+                }[laptop.status] || 'badge-active';
+
+                const recoveryKeyDisplay = laptop.bitLockerRecoveryKey 
+                    ? `<span class="recovery-key-masked" onclick="toggleRecoveryKey(this)">●●●●●●●●●● (Click to show)</span>` 
+                    : '-';
+
+                const row = `
+                    <tr>
+                        <td style="font-weight: 600; color: var(--gray-500);">${index + 1}</td>
+                        <td><strong>${laptop.assetTag}</strong></td>
+                        <td>${laptop.model}</td>
+                        <td>${laptop.serial}</td>
+                        <td>${laptop.employee}</td>
+                        <td>${laptop.osVersion || '-'}</td>
+                        <td>${laptop.ram || '-'}</td>
+                        <td>${laptop.storage || '-'}</td>
+                        <td title="BitLocker Key ID">${laptop.bitLockerKeyId || '-'}</td>
+                        <td>${laptop.bitLockerRecoveryKey 
+                    ? `<span class="recovery-key-masked" onclick="toggleRecoveryKey(this)">●●●●●●●●●● (Click to show)</span>` 
+                    : '-'}</td>
+                        <td>${laptop.purchaseDate}</td>
+                        <td>${laptop.dateIssued || '-'}</td>
+                        <td><span class="badge ${statusBadge}">${laptop.status}</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-primary btn-small" onclick="editLaptop('${laptop.assetTag}')">Edit</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                table.innerHTML += row;
+            });
+
+            if (data.laptops.length === 0) {
+                table.innerHTML = '<tr><td colspan="14" style="text-align: center; color: var(--gray-500);">No laptops in inventory</td></tr>';
+            }
+        }
+
+        function toggleRecoveryKey(element) {
+            const currentText = element.textContent;
+            if (currentText.includes('Click to show')) {
+                const parent = element.closest('tr');
+                const assetTag = parent.querySelector('strong').textContent;
+                const laptop = data.laptops.find(l => l.assetTag === assetTag);
+                if (laptop && laptop.bitLockerRecoveryKey) {
+                    element.innerHTML = `<span style="cursor: pointer; color: var(--danger); font-weight: bold;" onclick="copyToClipboard(event)">${laptop.bitLockerRecoveryKey}</span> <span style="font-size: 11px; color: var(--gray-500);">(Click to hide | Ctrl+C to copy)</span>`;
+                    element.style.cursor = 'pointer';
+                }
+            } else {
+                element.textContent = '●●●●●●●●●● (Click to show)';
+                element.style.color = 'inherit';
+            }
+        }
+
+        function copyToClipboard(event) {
+            event.stopPropagation();
+            const text = event.target.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showAlert('BitLocker key copied to clipboard!', 'success');
+            }).catch(() => {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showAlert('BitLocker key copied to clipboard!', 'success');
+            });
+        }
+
+        let sortField = 'assetTag';
+        let sortAscending = true;
+
+        function sortBy(field) {
+            // If clicking the same field, toggle ascending/descending
+            if (sortField === field) {
+                sortAscending = !sortAscending;
+            } else {
+                sortField = field;
+                sortAscending = true;
+            }
+            
+            data.laptops.sort((a, b) => {
+                let aVal = a[field] || '';
+                let bVal = b[field] || '';
+                
+                // Handle dates
+                if (field === 'purchaseDate') {
+                    aVal = new Date(aVal);
+                    bVal = new Date(bVal);
+                    return sortAscending ? aVal - bVal : bVal - aVal;
+                }
+                
+                // Handle numbers
+                if (field === 'index') {
+                    return sortAscending ? 0 : 0;
+                }
+                
+                // Handle strings
+                if (typeof aVal === 'string') {
+                    return sortAscending 
+                        ? aVal.localeCompare(bVal) 
+                        : bVal.localeCompare(aVal);
+                }
+                
+                return sortAscending ? aVal - bVal : bVal - aVal;
+            });
+            
+            loadInventory();
+        }
+
+        function editLaptop(assetTag) {
+            const laptop = data.laptops.find(l => l.assetTag === assetTag);
+            if (!laptop) return;
+
+            currentEditAssetTag = assetTag;
+            document.getElementById('editAssetTag').value = laptop.assetTag;
+            document.getElementById('editModel').value = laptop.model;
+            document.getElementById('editSerial').value = laptop.serial;
+            document.getElementById('editEmployee').value = laptop.employee;
+            document.getElementById('editRam').value = laptop.ram;
+            document.getElementById('editStorage').value = laptop.storage;
+            document.getElementById('editPurchaseDate').value = laptop.purchaseDate;
+            document.getElementById('editDateIssued').value = laptop.dateIssued || '';
+            document.getElementById('editOsVersion').value = laptop.osVersion || '';
+            document.getElementById('editBitLockerKeyId').value = laptop.bitLockerKeyId || '';
+            document.getElementById('editBitLockerRecoveryKey').value = laptop.bitLockerRecoveryKey || '';
+            document.getElementById('editStatus').value = laptop.status;
+            document.getElementById('editNotes').value = laptop.notes;
+
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function saveLaptopEdit() {
+            const idx = data.laptops.findIndex(l => l.assetTag === currentEditAssetTag);
+            if (idx === -1) return;
+
+            const model = document.getElementById('editModel').value.trim();
+            const serial = document.getElementById('editSerial').value.trim();
+            const employee = document.getElementById('editEmployee').value.trim();
+            const ram = document.getElementById('editRam').value.trim();
+            const storage = document.getElementById('editStorage').value.trim();
+            const purchaseDate = document.getElementById('editPurchaseDate').value;
+            const dateIssued = document.getElementById('editDateIssued').value;
+            const osVersion = document.getElementById('editOsVersion').value.trim();
+            const bitLockerKeyId = document.getElementById('editBitLockerKeyId').value.trim();
+            const bitLockerRecoveryKey = document.getElementById('editBitLockerRecoveryKey').value.trim();
+            const status = document.getElementById('editStatus').value;
+            const notes = document.getElementById('editNotes').value.trim();
+
+            if (!model || !serial || !purchaseDate) {
+                document.getElementById('editError').textContent = 'Please fill in required fields';
+                return;
+            }
+
+            data.laptops[idx] = {
+                ...data.laptops[idx],
+                model,
+                serial,
+                employee: employee || 'Unassigned',
+                ram,
+                storage,
+                osVersion,
+                bitLockerKeyId,
+                bitLockerRecoveryKey,
+                purchaseDate,
+                dateIssued,
+                status,
+                notes
+            };
+
+            saveData();
+            closeEditModal();
+            loadInventory();
+            updateStats();
+            updateReportPreviews();
+            showAlert('Laptop updated successfully!', 'success');
+        }
+
+        function deleteLaptop() {
+            showDeleteConfirm(`Delete ${currentEditAssetTag}?`, () => {
+                data.laptops = data.laptops.filter(l => l.assetTag !== currentEditAssetTag);
+                saveData();
+                closeEditModal();
+                loadInventory();
+                updateStats();
+                updateReportPreviews();
+                showAlert('Laptop deleted', 'success');
+            });
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+            currentEditAssetTag = null;
+        }
+
+        // ==================== STATS ====================
+        function updateStats() {
+            const total = data.laptops.length;
+            const active = data.laptops.filter(l => l.status === 'Active').length;
+            const unassigned = data.laptops.filter(l => l.status === 'Unassigned').length;
+            const repair = data.laptops.filter(l => l.status === 'Repair').length;
+            const retired = data.laptops.filter(l => l.status === 'Retired').length;
+
+            document.getElementById('totalLaptops').textContent = total;
+            document.getElementById('totalActive').textContent = active;
+            document.getElementById('totalUnassigned').textContent = unassigned;
+
+            const statsHtml = `
+                <div class="stat-card">
+                    <div class="stat-value">${total}</div>
+                    <div class="stat-label">Total Laptops</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-value">${active}</div>
+                    <div class="stat-label">Active (In Use)</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-value">${unassigned}</div>
+                    <div class="stat-label">Unassigned</div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="stat-value">${repair}</div>
+                    <div class="stat-label">In Repair</div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="stat-value">${retired}</div>
+                    <div class="stat-label">Retired</div>
+                </div>
+            `;
+
+            document.getElementById('statsGrid').innerHTML = statsHtml;
+        }
+
+        // ==================== REPORTS ====================
+        function updateReportPreviews() {
+            // Inventory Preview
+            const inventoryHtml = data.laptops.slice(0, 10).map(laptop => {
+                const purchaseDate = new Date(laptop.purchaseDate);
+                const today = new Date();
+                const ageYears = ((today - purchaseDate) / (1000 * 60 * 60 * 24 * 365)).toFixed(1);
+                return `
+                    <tr>
+                        <td>${laptop.assetTag}</td>
+                        <td>${laptop.model}</td>
+                        <td>${laptop.employee}</td>
+                        <td><span class="badge badge-${(laptop.status || 'active').toLowerCase()}">${laptop.status || 'Active'}</span></td>
+                        <td>${ageYears}</td>
+                    </tr>
+                `;
+            }).join('');
+            document.getElementById('reportPreviewInventory').innerHTML = inventoryHtml || '<tr><td colspan="5" style="text-align: center; color: var(--gray-500);">No data</td></tr>';
+
+            // Status Preview
+            const statuses = ['Active', 'Unassigned', 'Repair', 'Retired'];
+            const statusHtml = statuses.map(status => {
+                const count = data.laptops.filter(l => l.status === status).length;
+                const pct = data.laptops.length > 0 ? ((count / data.laptops.length) * 100).toFixed(1) : 0;
+                return `
+                    <tr>
+                        <td>${status}</td>
+                        <td>${count}</td>
+                        <td>${pct}%</td>
+                    </tr>
+                `;
+            }).join('');
+            document.getElementById('reportPreviewStatus').innerHTML = statusHtml;
+
+            // Employees Preview
+            const employees = [...new Set(data.laptops.filter(l => l.employee).map(l => l.employee))];
+            const employeeHtml = employees.slice(0, 10).map(emp => {
+                const laptops = data.laptops.filter(l => l.employee === emp);
+                const firstLaptop = laptops[0];
+                return `
+                    <tr>
+                        <td>${emp}</td>
+                        <td>${firstLaptop.assetTag}</td>
+                        <td>${firstLaptop.model}</td>
+                        <td><span class="badge badge-${(firstLaptop.status || 'active').toLowerCase()}">${firstLaptop.status || 'Active'}</span></td>
+                    </tr>
+                `;
+            }).join('');
+            document.getElementById('reportPreviewEmployees').innerHTML = employeeHtml || '<tr><td colspan="4" style="text-align: center; color: var(--gray-500);">No assignments</td></tr>';
+        }
+
+        function exportAllReports() {
+            try {
+                if (!data.laptops || data.laptops.length === 0) {
+                    showMessage('exportMessage', 'No laptops to export', 'warning');
+                    return;
+                }
+
+                const wb = XLSX.utils.book_new();
+
+                // SHEET 1: Inventory List
+                const inventoryData = [['Asset Tag', 'Model', 'Serial #', 'Employee', 'OS Version', 'RAM', 'Storage', 'BitLocker Key ID', 'Purchase Date', 'Date Issued', 'Age (Years)', 'Status', 'Notes']];
+                data.laptops.forEach(laptop => {
+                    const purchaseDate = new Date(laptop.purchaseDate);
+                    const today = new Date();
+                    const ageYears = ((today - purchaseDate) / (1000 * 60 * 60 * 24 * 365)).toFixed(1);
+                    inventoryData.push([
+                        laptop.assetTag || '',
+                        laptop.model || '',
+                        laptop.serial || '',
+                        laptop.employee || '',
+                        laptop.osVersion || '',
+                        laptop.ram || '',
+                        laptop.storage || '',
+                        laptop.bitLockerKeyId || '',
+                        laptop.purchaseDate || '',
+                        laptop.dateIssued || '',
+                        ageYears || '',
+                        laptop.status || '',
+                        laptop.notes || ''
+                    ]);
+                });
+
+                const ws1 = XLSX.utils.aoa_to_sheet(inventoryData);
+                ws1['!cols'] = [
+                    { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 15 },
+                    { wch: 15 }, { wch: 10 }, { wch: 15 }, { wch: 18 },
+                    { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 20 }
+                ];
+                XLSX.utils.book_append_sheet(wb, ws1, 'Inventory List');
+
+                // SHEET 2: Status Report
+                const statuses = ['Active', 'Unassigned', 'Repair', 'Retired'];
+                const statusData = [['Status', 'Count', 'Percentage']];
+                statuses.forEach(status => {
+                    const count = data.laptops.filter(l => l.status === status).length;
+                    const pct = data.laptops.length > 0 ? ((count / data.laptops.length) * 100).toFixed(1) : 0;
+                    statusData.push([status, count, pct + '%']);
+                });
+
+                const ws2 = XLSX.utils.aoa_to_sheet(statusData);
+                ws2['!cols'] = [{ wch: 15 }, { wch: 10 }, { wch: 12 }];
+                XLSX.utils.book_append_sheet(wb, ws2, 'Status Report');
+
+                // SHEET 3: Employee Assignments
+                const employees = [...new Set(data.laptops.filter(l => l.employee && l.employee !== 'Unassigned').map(l => l.employee))];
+                const employeeData = [['Employee', 'Asset Tag', 'Model', 'Serial #', 'OS Version', 'RAM', 'Storage', 'Status', 'Purchase Date', 'Age (Years)']];
+                employees.forEach(emp => {
+                    data.laptops.filter(l => l.employee === emp).forEach(laptop => {
+                        const purchaseDate = new Date(laptop.purchaseDate);
+                        const today = new Date();
+                        const ageYears = ((today - purchaseDate) / (1000 * 60 * 60 * 24 * 365)).toFixed(1);
+                        employeeData.push([
+                            emp || '',
+                            laptop.assetTag || '',
+                            laptop.model || '',
+                            laptop.serial || '',
+                            laptop.osVersion || '',
+                            laptop.ram || '',
+                            laptop.storage || '',
+                            laptop.status || '',
+                            laptop.purchaseDate || '',
+                            ageYears || ''
+                        ]);
+                    });
+                });
+
+                const ws3 = XLSX.utils.aoa_to_sheet(employeeData);
+                ws3['!cols'] = [
+                    { wch: 15 }, { wch: 12 }, { wch: 20 },
+                    { wch: 15 }, { wch: 15 }, { wch: 10 },
+                    { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
+                ];
+                XLSX.utils.book_append_sheet(wb, ws3, 'Employee Assignments');
+
+                // SHEET 4: Depreciation Tracking
+                const deprecData = [['Asset Tag', 'Model', 'OS Version', 'Purchase Date', 'Age (Years)', 'Status']];
+                data.laptops.forEach(laptop => {
+                    const purchaseDate = new Date(laptop.purchaseDate);
+                    const today = new Date();
+                    const ageYears = ((today - purchaseDate) / (1000 * 60 * 60 * 24 * 365)).toFixed(1);
+                    deprecData.push([
+                        laptop.assetTag || '',
+                        laptop.model || '',
+                        laptop.osVersion || '',
+                        laptop.purchaseDate || '',
+                        ageYears || '',
+                        laptop.status || ''
+                    ]);
+                });
+
+                const ws4 = XLSX.utils.aoa_to_sheet(deprecData);
+                ws4['!cols'] = [{ wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
+                XLSX.utils.book_append_sheet(wb, ws4, 'Depreciation Tracking');
+
+                const filename = `laptop_inventory_${new Date().toISOString().split('T')[0]}.xlsx`;
+                XLSX.writeFile(wb, filename);
+                showMessage('exportMessage', '✅ Excel file downloaded successfully!', 'success');
+            } catch (err) {
+                console.error('Export error:', err);
+                showMessage('exportMessage', 'Error exporting file: ' + err.message, 'danger');
+            }
+        }
+
+        // ==================== UTILITIES ====================
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function showAlert(msg, type = 'info') {
+            const msgEl = document.createElement('div');
+            msgEl.className = `alert alert-${type}`;
+            msgEl.textContent = msg;
+            document.querySelector('.content').insertBefore(msgEl, document.querySelector('.content').firstChild);
+            setTimeout(() => msgEl.remove(), 4000);
+        }
+
+        function showMessage(elementId, msg, type) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+            setTimeout(() => el.innerHTML = '', 4000);
+        }
+
+        function showDeleteConfirm(msg, callback) {
+            document.getElementById('deleteMessage').textContent = msg;
+            document.getElementById('deleteModal').classList.add('active');
+            document.getElementById('confirmDeleteBtn').onclick = () => {
+                callback();
+                closeDeleteModal();
+            };
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (file) importDataFromJson(file);
+            document.getElementById('fileInput').value = '';
+        }
+
+        function handleCSVImport(event) {
+            const file = event.target.files[0];
+            if (file) importDataFromCSV(file);
+            document.getElementById('csvInput').value = '';
+        }
+
+        function importDataFromCSV(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const csv = e.target.result;
+                    const lines = csv.trim().split('\n');
+                    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                    const imported = [];
+
+                    // Find column indices
+                    const idIndex = headers.findIndex(h => h.includes('id') || h.includes('tag') || h.includes('asset'));
+                    const modelIndex = headers.findIndex(h => h.includes('model'));
+                    const serialIndex = headers.findIndex(h => h.includes('serial'));
+                    const employeeIndex = headers.findIndex(h => h.includes('employee') || h.includes('user') || h.includes('assigned'));
+                    const osIndex = headers.findIndex(h => h.includes('os') || h.includes('version'));
+                    const ramIndex = headers.findIndex(h => h.includes('ram'));
+                    const storageIndex = headers.findIndex(h => h.includes('storage') || h.includes('memory'));
+                    const bitLockerKeyIndex = headers.findIndex(h => h.includes('bitlocker') && h.includes('id'));
+                    const bitLockerRecoveryIndex = headers.findIndex(h => h.includes('bitlocker') && h.includes('recovery'));
+                    const statusIndex = headers.findIndex(h => h.includes('status'));
+                    const purchaseDateIndex = headers.findIndex(h => h.includes('purchase') || h.includes('date'));
+                    const dateIssuedIndex = headers.findIndex(h => h.includes('issued'));
+                    const notesIndex = headers.findIndex(h => h.includes('notes'));
+
+                    // Parse data rows
+                    for (let i = 1; i < lines.length; i++) {
+                        if (!lines[i].trim()) continue;
+
+                        // Handle CSV with quoted values
+                        const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+
+                        const laptop = {
+                            assetTag: idIndex >= 0 ? values[idIndex] : `LT-${Date.now()}`,
+                            model: modelIndex >= 0 ? values[modelIndex] : '',
+                            serial: serialIndex >= 0 ? values[serialIndex] : '',
+                            employee: employeeIndex >= 0 ? values[employeeIndex] : 'Unassigned',
+                            osVersion: osIndex >= 0 ? values[osIndex] : '',
+                            ram: ramIndex >= 0 ? values[ramIndex] : '',
+                            storage: storageIndex >= 0 ? values[storageIndex] : '',
+                            bitLockerKeyId: bitLockerKeyIndex >= 0 ? values[bitLockerKeyIndex] : '',
+                            bitLockerRecoveryKey: bitLockerRecoveryIndex >= 0 ? values[bitLockerRecoveryIndex] : '',
+                            status: statusIndex >= 0 ? values[statusIndex] : 'Active',
+                            purchaseDate: purchaseDateIndex >= 0 ? values[purchaseDateIndex] : new Date().toISOString().split('T')[0],
+                            dateIssued: dateIssuedIndex >= 0 ? values[dateIssuedIndex] : '',
+                            notes: notesIndex >= 0 ? values[notesIndex] : '',
+                            addedDate: new Date().toISOString()
+                        };
+
+                        // Only add if has required fields
+                        if (laptop.assetTag && laptop.model && laptop.serial) {
+                            imported.push(laptop);
+                        }
+                    }
+
+                    if (imported.length === 0) {
+                        showAlert('No valid laptops found in CSV', 'warning');
+                        return;
+                    }
+
+                    // Ask user if they want to replace or add
+                    if (confirm(`Found ${imported.length} laptops. Click OK to REPLACE all data, or Cancel to ADD to existing data.`)) {
+                        data.laptops = imported;
+                    } else {
+                        data.laptops = [...data.laptops, ...imported];
+                    }
+
+                    saveData();
+                    loadInventory();
+                    updateStats();
+                    updateReportPreviews();
+                    showAlert(`Successfully imported ${imported.length} laptops!`, 'success');
+                } catch (err) {
+                    showAlert('Error importing CSV: ' + err.message, 'danger');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function confirmClearAllData() {
+            showDeleteConfirm('⚠️ This will DELETE ALL laptop records. This cannot be undone. Are you sure?', () => {
+                data.laptops = [];
+                saveData();
+                loadInventory();
+                updateStats();
+                updateReportPreviews();
+                showAlert('All data has been cleared', 'danger');
+            });
+        }
+
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadData();
+            if (data.laptops.length === 0) {
+                data.laptops = [
+                    { assetTag: 'LT-001', model: 'Dell XPS 15', serial: 'ABC123456', employee: 'John Doe', ram: '16GB', storage: '512GB SSD', osVersion: 'Windows 11 Pro', bitLockerKeyId: 'BL-2024-001', bitLockerRecoveryKey: '', purchaseDate: '2022-03-15', status: 'Active', notes: '', addedDate: new Date().toISOString() },
+                    { assetTag: 'LT-002', model: 'MacBook Pro 14"', serial: 'XYZ789012', employee: 'Jane Smith', ram: '16GB', storage: '512GB SSD', osVersion: 'macOS Sonoma', bitLockerKeyId: '', bitLockerRecoveryKey: '', purchaseDate: '2023-01-20', status: 'Active', notes: '', addedDate: new Date().toISOString() },
+                    { assetTag: 'LT-003', model: 'HP Pavilion', serial: 'DEF345678', employee: 'Unassigned', ram: '8GB', storage: '256GB SSD', osVersion: 'Windows 11 Home', bitLockerKeyId: 'BL-2024-003', bitLockerRecoveryKey: '', purchaseDate: '2021-06-10', status: 'Unassigned', notes: '', addedDate: new Date().toISOString() }
+                ];
+                saveData();
+            }
+        });
+
+        // Periodically sync with OneDrive (every 10 seconds)
+        setInterval(async () => {
+            await syncDataFromOneDrive();
+            await syncDataToOneDrive();
+        }, 10000);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && document.querySelector('.login-screen').classList.contains('active')) {
+                adminLogin();
+            }
+        });
+    </script>
+</body>
+</html>
