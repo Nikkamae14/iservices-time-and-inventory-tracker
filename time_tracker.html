@@ -1,0 +1,1899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Time Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-500: #6b7280;
+            --gray-700: #374151;
+            --gray-900: #111827;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--gray-900);
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 1200px;
+            display: none;
+        }
+
+        .container.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* HEADER */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header .user-info {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* MAIN CONTENT */
+        .content {
+            padding: 30px;
+            flex: 1;
+        }
+
+        /* LOGIN SCREEN */
+        .login-screen {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+        }
+
+        .login-screen.active {
+            display: flex;
+        }
+
+        .login-form {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-form h2 {
+            margin-bottom: 30px;
+            color: var(--gray-900);
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: var(--gray-300);
+            color: var(--gray-900);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-400);
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 12px;
+            width: auto;
+        }
+
+        .error {
+            color: var(--danger);
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .success-msg {
+            color: var(--success);
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--gray-200);
+            margin-bottom: 30px;
+            gap: 20px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-500);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            position: relative;
+            bottom: -2px;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* CLOCK IN/OUT SECTION */
+        .clock-section {
+            text-align: center;
+            padding: 40px;
+            background: var(--gray-50);
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .time-display {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .date-display {
+            color: var(--gray-500);
+            margin-bottom: 30px;
+        }
+
+        .clock-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .clock-buttons .btn {
+            width: auto;
+            padding: 12px 30px;
+            font-size: 16px;
+        }
+
+        /* STATUS BADGES */
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .status-badge.clocked-in {
+            background: #dbeafe;
+            color: #0369a1;
+        }
+
+        .status-badge.on-break {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-badge.clocked-out {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        /* LOGS TABLE */
+        .logs-section {
+            margin-top: 30px;
+        }
+
+        .logs-section h3 {
+            margin-bottom: 20px;
+            color: var(--gray-900);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            background: var(--gray-100);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--gray-700);
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        tr:hover {
+            background: var(--gray-50);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* ADMIN PANEL */
+        .admin-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--gray-50);
+            border-radius: 8px;
+        }
+
+        .admin-section h3 {
+            margin-bottom: 20px;
+            color: var(--gray-900);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: var(--gray-900);
+        }
+
+        .close-modal {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--gray-500);
+        }
+
+        .close-modal:hover {
+            color: var(--gray-900);
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #0369a1;
+            border-left: 4px solid #0369a1;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border-left: 4px solid #10b981;
+        }
+
+        .alert-danger {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .clock-section {
+                padding: 20px;
+            }
+
+            .time-display {
+                font-size: 36px;
+            }
+
+            .modal-content {
+                margin: 20px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+        }
+
+        .filter-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--gray-50);
+            border-radius: 8px;
+        }
+
+        .filter-section .form-row {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- LOGIN SCREEN -->
+    <div class="login-screen active">
+        <div class="login-form">
+            <h2>Employee Time Tracker</h2>
+            <div id="loginError" class="error"></div>
+            <div class="form-group">
+                <label>Employee ID</label>
+                <input type="text" id="loginId" placeholder="Enter your ID">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="Enter password">
+            </div>
+            <button class="btn btn-primary" onclick="login()">Login</button>
+            <div style="margin-top: 20px; text-align: center;">
+                <button class="btn btn-secondary" onclick="showAdminLogin()">Admin Login</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN LOGIN SCREEN -->
+    <div class="login-screen" id="adminLoginScreen">
+        <div class="login-form">
+            <h2>Admin Login</h2>
+            <div id="adminLoginError" class="error"></div>
+            <div class="form-group">
+                <label>Admin Password</label>
+                <input type="password" id="adminPassword" placeholder="Enter admin password">
+            </div>
+            <button class="btn btn-primary" onclick="adminLogin()">Login</button>
+            <button class="btn btn-secondary" style="margin-top: 10px;" onclick="showEmployeeLogin()">Back to Employee Login</button>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div class="container" id="appContainer">
+        <div class="header">
+            <div>
+                <h1>Employee Time Tracker</h1>
+                <div class="user-info" id="userInfo"></div>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="content">
+            <!-- PASSWORD CHANGE MODAL -->
+            <div class="modal" id="changePasswordModal">
+                <div class="modal-content">
+                    <button class="close-modal" onclick="closeChangePasswordModal()" style="position: static; float: right; margin-bottom: 10px;">×</button>
+                    <div class="modal-header">
+                        <h2>Set New Password</h2>
+                        <p style="color: var(--gray-500); margin-top: 5px;">This is your first login. Please create a new password.</p>
+                    </div>
+                    <div id="passwordError" class="error"></div>
+                    <div class="form-group">
+                        <label>New Password</label>
+                        <input type="password" id="newPassword" placeholder="Enter new password">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm Password</label>
+                        <input type="password" id="confirmPassword" placeholder="Confirm password">
+                    </div>
+                    <button class="btn btn-primary" onclick="changePassword()">Set Password</button>
+                </div>
+            </div>
+
+            <!-- EMPLOYEE VIEW -->
+            <div id="employeeView">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('clock')">Clock In/Out</button>
+                    <button class="tab-btn" onclick="switchTab('history')">My History</button>
+                </div>
+
+                <!-- Clock In/Out Tab -->
+                <div id="clock" class="tab-content active">
+                    <div class="clock-section">
+                        <div class="time-display" id="timeDisplay">--:--:--</div>
+                        <div class="date-display" id="dateDisplay"></div>
+                        <div id="currentStatus" class="status-badge"></div>
+
+                        <div class="clock-buttons">
+                            <button class="btn btn-success" id="clockInBtn" onclick="clockIn()" style="display: none;">Clock In</button>
+                            <button class="btn btn-danger" id="clockOutBtn" onclick="clockOut()" style="display: none;">Clock Out</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Tab -->
+                <div id="history" class="tab-content">
+                    <div class="logs-section">
+                        <h3>Your Time Logs</h3>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Clock In</th>
+                                        <th>Clock Out</th>
+                                        <th>Hours</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employeeHistoryTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADMIN VIEW -->
+            <div id="adminView" style="display: none;">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('employees')">Manage Employees</button>
+                    <button class="tab-btn" onclick="switchTab('export')">Export Payroll</button>
+                    <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
+                </div>
+
+                <!-- Manage Employees Tab -->
+                <div id="employees" class="tab-content active">
+                    <div class="admin-section">
+                        <h3>Add New Employee</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Employee ID</label>
+                                <input type="text" id="newEmpId" placeholder="e.g., EMP001">
+                            </div>
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="newEmpName" placeholder="e.g., John Doe">
+                            </div>
+                            <div class="form-group">
+                                <label>Temporary Password</label>
+                                <input type="text" id="newEmpPassword" placeholder="e.g., Temp@123" value="Temp@123">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="addEmployee()">Add Employee</button>
+                        <div id="addEmpMessage"></div>
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>Current Employees</h3>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employeesTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Payroll Tab -->
+                <div id="export" class="tab-content">
+                    <div class="admin-section">
+                        <h3>Export Payroll Data</h3>
+                        <p style="margin-bottom: 20px; color: var(--gray-500);">Select a payroll period to export employee time logs.</p>
+                        
+                        <div class="filter-section">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Select Period</label>
+                                    <select id="periodSelect" style="width: 100%; padding: 12px; border: 1px solid var(--gray-300); border-radius: 6px;">
+                                        <option value="">-- Choose Period --</option>
+                                        <option value="current-25-9">Current: 25th to 9th (Pay on 10th)</option>
+                                        <option value="current-10-24">Current: 10th to 24th (Pay on 25th)</option>
+                                        <option value="custom">Custom Date Range</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="customDateRange" style="display: none;">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>From Date</label>
+                                        <input type="date" id="customFromDate">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>To Date</label>
+                                        <input type="date" id="customToDate">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-success" onclick="exportPayroll()" style="width: auto; padding: 12px 30px;">Generate Excel</button>
+                        <div id="exportMessage"></div>
+                    </div>
+                </div>
+
+                <!-- All Logs Tab -->
+                <!-- Settings Tab -->
+                <div id="settings" class="tab-content">
+                    <div class="admin-section">
+                        <h3>📁 OneDrive Setup</h3>
+                        <div class="alert alert-info">
+                            <strong>Important:</strong> Follow these steps to sync data across all employee laptops:
+                        </div>
+                        <div style="background: var(--gray-100); padding: 20px; border-radius: 8px; margin-bottom: 20px; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.8;">
+                            <strong>Step 1:</strong> Create a folder in OneDrive (e.g., "TimeTracker")<br><br>
+                            <strong>Step 2:</strong> Upload the time_tracker.html file to that folder<br><br>
+                            <strong>Step 3:</strong> Right-click folder → Share → "Edit" permissions<br><br>
+                            <strong>Step 4:</strong> Copy the OneDrive folder link and send to all employees<br><br>
+                            <strong>Step 5:</strong> First person to clock in/out will create timeTrackerData.json automatically<br><br>
+                            ✅ All laptops will now see the SAME data in real-time!
+                        </div>
+
+                        <div style="margin-top: 20px;">
+                            <strong>Sync Status:</strong> <span id="syncStatus" style="color: var(--success); font-weight: 600;">✓ Ready</span>
+                        </div>
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>💾 Data Management</h3>
+                        <p style="margin-bottom: 20px; color: var(--gray-500);">Backup and restore your data</p>
+                        
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+                            <button class="btn btn-primary" onclick="downloadDataAsJson()" style="width: auto; padding: 12px 20px;">
+                                📥 Download Backup
+                            </button>
+                            <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()" style="width: auto; padding: 12px 20px;">
+                                📤 Restore from Backup
+                            </button>
+                            <button class="btn btn-danger" onclick="confirmClearAllData()" style="width: auto; padding: 12px 20px;">
+                                🗑️ Clear All Data
+                            </button>
+                        </div>
+                        <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="handleFileImport(event)">
+                        <div id="dataManagementMessage" style="margin-top: 15px;"></div>
+                    </div>
+
+                    <div class="admin-section">
+                        <h3>ℹ️ Data Summary</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary);">
+                                <div style="font-size: 28px; font-weight: 700; color: var(--primary);" id="totalEmployees">0</div>
+                                <div style="color: var(--gray-500); font-size: 12px; margin-top: 5px;">Total Employees</div>
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid var(--success);">
+                                <div style="font-size: 28px; font-weight: 700; color: var(--success);" id="totalLogs">0</div>
+                                <div style="color: var(--gray-500); font-size: 12px; margin-top: 5px;">Total Time Logs</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE CONFIRMATION MODAL -->
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <h2>Confirm Delete</h2>
+            <p id="deleteMessage" style="margin: 20px 0; color: var(--gray-500);"></p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-danger" id="confirmDeleteBtn" style="flex: 1;">Delete</button>
+                <button class="btn btn-secondary" onclick="closeDeleteModal()" style="flex: 1;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== DATA MANAGEMENT ====================
+        const ADMIN_PASSWORD = 'admin123';
+        const DATA_FILE_NAME = 'timeTrackerData.json';
+        let dataFile = null;
+        let data = {
+            employees: [],
+            logs: [],
+            version: 1
+        };
+
+        let currentUser = null;
+        let isAdmin = false;
+        let isSyncing = false;
+
+        // ==================== FIREBASE INITIALIZATION ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBCyTm4pC6FslECN5y4hwNncbmfEoCuqtY",
+            authDomain: "iservices-time-tracker-1b07a.firebaseapp.com",
+            databaseURL: "https://iservices-time-tracker-1b07a-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "iservices-time-tracker-1b07a",
+            storageBucket: "iservices-time-tracker-1b07a.firebasestorage.app",
+            messagingSenderId: "916210075076",
+            appId: "1:916210075076:web:e664fe7d72a17ed8bd9091"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Real-time listener for data changes
+        db.ref('timeTrackerData').on('value', snapshot => {
+            if (snapshot.exists()) {
+                data = snapshot.val();
+                // Update UI if logged in
+                if (currentUser) {
+                    if (isAdmin) {
+                        loadEmployees();
+                        updateDataSummary();
+                    } else {
+                        loadEmployeeHistory();
+                        updateClockStatus();
+                    }
+                }
+            }
+        });
+
+        // Load data from Firebase
+        async function loadData() {
+            return new Promise((resolve) => {
+                db.ref('timeTrackerData').once('value', snapshot => {
+                    if (snapshot.exists()) {
+                        data = snapshot.val();
+                    } else {
+                        // Initialize with empty data if first time
+                        data = {
+                            employees: [],
+                            logs: [],
+                            version: 1
+                        };
+                        saveData();
+                    }
+                    resolve();
+                });
+            });
+        }
+
+        // Save data to Firebase
+        async function saveData() {
+            try {
+                await db.ref('timeTrackerData').set(data);
+            } catch (e) {
+                console.error('Error saving to Firebase:', e);
+                showAlert('⚠️ Error saving data', 'danger');
+            }
+        }
+
+        function setupOneDriveSync() {
+            // Firebase handles real-time sync automatically
+        }
+
+        // Sync data TO OneDrive
+        async function syncDataToOneDrive() {
+            if (isSyncing) return;
+            isSyncing = true;
+
+            try {
+                const dataStr = JSON.stringify(data, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                
+                // Try to write file using OneDrive API
+                // Note: This requires the file to be in a shared OneDrive folder
+                const formData = new FormData();
+                formData.append('file', blob, DATA_FILE_NAME);
+
+                // Attempt to save - adjust path as needed
+                const response = await fetch(DATA_FILE_NAME, {
+                    method: 'PUT',
+                    body: dataStr,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    console.log('Data synced to OneDrive');
+                }
+            } catch (e) {
+                console.warn('OneDrive sync failed:', e);
+                // Fall back to localStorage only
+            } finally {
+                isSyncing = false;
+            }
+        }
+
+        // IMPORTANT: Setup for OneDrive
+        function setupOneDriveSync() {
+            console.log('ℹ️ SETUP INSTRUCTIONS:');
+            console.log('1. Create a folder in OneDrive (e.g., "TimeTracker")');
+            console.log('2. Upload time_tracker.html to that folder');
+            console.log('3. Share the folder link with employees');
+            console.log('4. A timeTrackerData.json file will auto-create on first save');
+            console.log('5. Make sure folder is set to "Edit" permissions');
+        }
+
+        // Export data as JSON file (for backup)
+        function downloadDataAsJson() {
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `time_tracker_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Import data from JSON file
+        function importDataFromJson(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    data = imported;
+                    saveData();
+                    showAlert('Data imported successfully!', 'success');
+                    loadEmployees();
+                } catch (err) {
+                    showAlert('Error importing data: ' + err.message, 'danger');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ==================== AUTHENTICATION ====================
+        function login() {
+            const id = document.getElementById('loginId').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!id || !password) {
+                showLoginError('Please enter ID and password');
+                return;
+            }
+
+            const employee = data.employees.find(e => e.id === id);
+            if (!employee) {
+                showLoginError('Employee not found');
+                return;
+            }
+
+            if (employee.password !== password) {
+                showLoginError('Incorrect password');
+                return;
+            }
+
+            currentUser = employee;
+            isAdmin = false;
+            
+            // Save session to localStorage
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            localStorage.setItem('isAdmin', 'false');
+            
+            document.querySelector('.login-screen').classList.remove('active');
+            document.getElementById('appContainer').classList.add('active');
+            document.getElementById('employeeView').style.display = 'block';
+            document.getElementById('adminView').style.display = 'none';
+            document.getElementById('userInfo').textContent = `${employee.name} (ID: ${employee.id})`;
+
+            // Check if first login
+            if (employee.firstLogin) {
+                showChangePasswordModal();
+            } else {
+                updateClockStatus();
+                loadEmployeeHistory();
+                startClock();
+            }
+
+            document.getElementById('loginId').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+
+        function adminLogin() {
+            const password = document.getElementById('adminPassword').value;
+            if (password !== ADMIN_PASSWORD) {
+                document.getElementById('adminLoginError').textContent = 'Incorrect admin password';
+                return;
+            }
+
+            currentUser = { name: 'Admin' };
+            isAdmin = true;
+            
+            // Save session to localStorage
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            localStorage.setItem('isAdmin', 'true');
+            
+            document.getElementById('adminLoginScreen').classList.remove('active');
+            document.getElementById('appContainer').classList.add('active');
+            document.getElementById('employeeView').style.display = 'none';
+            document.getElementById('adminView').style.display = 'block';
+            document.getElementById('userInfo').textContent = 'Admin User';
+
+            loadEmployees();
+            updateDataSummary();
+
+            document.getElementById('adminPassword').value = '';
+        }
+
+        function logout() {
+            currentUser = null;
+            isAdmin = false;
+            
+            // Clear session from localStorage
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('isAdmin');
+            
+            document.getElementById('appContainer').classList.remove('active');
+            document.querySelector('.login-screen').classList.add('active');
+            document.getElementById('adminLoginScreen').classList.remove('active');
+            document.getElementById('loginError').textContent = '';
+            document.getElementById('loginId').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+
+        function showEmployeeLogin() {
+            document.querySelector('.login-screen').classList.add('active');
+            document.getElementById('adminLoginScreen').classList.remove('active');
+            document.getElementById('adminLoginError').textContent = '';
+            document.getElementById('adminPassword').value = '';
+        }
+
+        function showAdminLogin() {
+            document.querySelector('.login-screen').classList.remove('active');
+            document.getElementById('adminLoginScreen').classList.add('active');
+        }
+
+        function showLoginError(msg) {
+            document.getElementById('loginError').textContent = msg;
+        }
+
+        // ==================== PASSWORD MANAGEMENT ====================
+        function showChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.add('active');
+        }
+
+        function closeChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.remove('active');
+        }
+
+        function changePassword() {
+            const newPwd = document.getElementById('newPassword').value;
+            const confirmPwd = document.getElementById('confirmPassword').value;
+
+            if (!newPwd || !confirmPwd) {
+                document.getElementById('passwordError').textContent = 'Please fill in all fields';
+                return;
+            }
+
+            if (newPwd !== confirmPwd) {
+                document.getElementById('passwordError').textContent = 'Passwords do not match';
+                return;
+            }
+
+            if (newPwd.length < 6) {
+                document.getElementById('passwordError').textContent = 'Password must be at least 6 characters';
+                return;
+            }
+
+            currentUser.password = newPwd;
+            currentUser.firstLogin = false;
+
+            const idx = data.employees.findIndex(e => e.id === currentUser.id);
+            if (idx !== -1) {
+                data.employees[idx] = currentUser;
+            }
+
+            saveData();
+            closeChangePasswordModal();
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('passwordError').textContent = '';
+
+            updateClockStatus();
+            loadEmployeeHistory();
+            startClock();
+        }
+
+        // ==================== EMPLOYEE MANAGEMENT ====================
+        function addEmployee() {
+            const id = document.getElementById('newEmpId').value.trim();
+            const name = document.getElementById('newEmpName').value.trim();
+            const password = document.getElementById('newEmpPassword').value;
+
+            if (!id || !name || !password) {
+                showMessage('addEmpMessage', 'Please fill all fields', 'danger');
+                return;
+            }
+
+            if (data.employees.find(e => e.id === id)) {
+                showMessage('addEmpMessage', 'Employee ID already exists', 'danger');
+                return;
+            }
+
+            data.employees.push({
+                id,
+                name,
+                password,
+                firstLogin: true,
+                createdAt: new Date().toISOString()
+            });
+
+            saveData();
+            loadEmployees();
+            showMessage('addEmpMessage', 'Employee added successfully!', 'success');
+
+            document.getElementById('newEmpId').value = '';
+            document.getElementById('newEmpName').value = '';
+            document.getElementById('newEmpPassword').value = 'Temp@123';
+        }
+
+        function deleteEmployee(id) {
+            showDeleteConfirm(`Are you sure you want to delete this employee? All their time logs will be removed.`, () => {
+                data.employees = data.employees.filter(e => e.id !== id);
+                data.logs = data.logs.filter(l => l.empId !== id);
+                saveData();
+                loadEmployees();
+                showAlert('Employee deleted successfully', 'success');
+            });
+        }
+
+        function loadEmployees() {
+            const table = document.getElementById('employeesTable');
+            table.innerHTML = '';
+
+            data.employees.forEach(emp => {
+                const status = emp.firstLogin ? '<span class="status-badge" style="background: #fee2e2; color: #991b1b;">Needs Password Setup</span>' : '<span class="status-badge clocked-out">Active</span>';
+                const row = `
+                    <tr>
+                        <td>${emp.id}</td>
+                        <td>${emp.name}</td>
+                        <td>${status}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-secondary btn-small" onclick="editEmployee('${emp.id}')">Edit</button>
+                                <button class="btn btn-danger btn-small" onclick="deleteEmployee('${emp.id}')">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                table.innerHTML += row;
+            });
+        }
+
+        function editEmployee(id) {
+            const emp = data.employees.find(e => e.id === id);
+            if (!emp) return;
+
+            const newName = prompt('Enter new name:', emp.name);
+            if (newName !== null && newName.trim()) {
+                emp.name = newName.trim();
+                saveData();
+                loadEmployees();
+                showAlert('Employee updated', 'success');
+            }
+        }
+
+        // ==================== TIMEZONE HANDLING ====================
+        const EMPLOYEE_TIMEZONE = 'Asia/Manila'; // PHT
+        const UTC_OFFSET_PHT = 8; // UTC+8 for Philippines
+        const UTC_OFFSET_PDT = -7; // UTC-7 for Pacific Daylight Time (summer)
+        const UTC_OFFSET_PST = -8; // UTC-8 for Pacific Standard Time (winter)
+
+        function getCurrentUTC() {
+            // Get current time in UTC ISO format
+            return new Date().toISOString();
+        }
+
+        function convertPDTToUTC(pdtTimeStr) {
+            // Convert PDT 12-hour time string to UTC
+            // PDT is UTC-7, so to convert to UTC we ADD 7 hours
+            // pdtTimeStr format: "6:15:17 AM"
+            try {
+                const parts = pdtTimeStr.trim().split(' ');
+                const timePart = parts[0];
+                const period = parts[1];
+                
+                const [hours, minutes, seconds] = timePart.split(':').map(Number);
+                
+                let hour24 = hours;
+                if (period === 'PM' && hours !== 12) {
+                    hour24 = hours + 12;
+                } else if (period === 'AM' && hours === 12) {
+                    hour24 = 0;
+                }
+                
+                // Create a date in PDT, then convert to UTC
+                const now = new Date();
+                const pdtDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour24, minutes, seconds);
+                
+                // Convert PDT to UTC: PDT is UTC-7, so add 7 hours to get UTC
+                const utcDate = new Date(pdtDate.getTime() + 7 * 60 * 60 * 1000);
+                
+                return utcDate.toISOString();
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function utcToLocal(timeString) {
+            // Display times in PHT
+            // Old format (12-hour): PDT times from laptop - convert to PHT
+            // New format (ISO UTC): convert to PHT
+            if (!timeString) return '-';
+            
+            try {
+                // Check if it's old PDT format (12-hour with AM/PM)
+                if (timeString.includes('AM') || timeString.includes('PM')) {
+                    // Old format: PDT time - convert to PHT
+                    // PDT is UTC-7, PHT is UTC+8, so PDT to PHT is +15 hours
+                    const parts = timeString.trim().split(' ');
+                    const timePart = parts[0];
+                    const period = parts[1];
+                    
+                    const [hours, minutes, seconds] = timePart.split(':').map(Number);
+                    let hour24 = hours;
+                    if (period === 'PM' && hours !== 12) {
+                        hour24 = hours + 12;
+                    } else if (period === 'AM' && hours === 12) {
+                        hour24 = 0;
+                    }
+                    
+                    // Add 15 hours to convert PDT to PHT
+                    let phtHours = hour24 + 15;
+                    
+                    // Handle day overflow
+                    if (phtHours >= 24) {
+                        phtHours -= 24;
+                    }
+                    
+                    // Format time as HH:MM:SS AM/PM
+                    const phtPeriod = phtHours >= 12 ? 'PM' : 'AM';
+                    const displayHours = phtHours % 12 || 12;
+                    const displayMinutes = String(minutes).padStart(2, '0');
+                    const displaySeconds = String(seconds).padStart(2, '0');
+                    
+                    return `${displayHours}:${displayMinutes}:${displaySeconds} ${phtPeriod}`;
+                } else {
+                    // New format: ISO UTC string like "2026-05-29T05:22:52.000Z"
+                    const utcDate = new Date(timeString);
+                    
+                    // Get the UTC time components
+                    const utcHours = utcDate.getUTCHours();
+                    const utcMinutes = utcDate.getUTCMinutes();
+                    const utcSeconds = utcDate.getUTCSeconds();
+                    
+                    // Convert to PHT by adding 8 hours
+                    let phtHours = utcHours + 8;
+                    
+                    // Handle day overflow
+                    if (phtHours >= 24) {
+                        phtHours -= 24;
+                    }
+                    
+                    // Format time as HH:MM:SS AM/PM
+                    const period = phtHours >= 12 ? 'PM' : 'AM';
+                    const displayHours = phtHours % 12 || 12;
+                    const displayMinutes = String(utcMinutes).padStart(2, '0');
+                    const displaySeconds = String(utcSeconds).padStart(2, '0');
+                    
+                    return `${displayHours}:${displayMinutes}:${displaySeconds} ${period}`;
+                }
+            } catch (e) {
+                console.error('Error converting time:', e, timeString);
+                return timeString;
+            }
+        }
+
+        function utcDateToPHTDate(utcDateStr) {
+            // Convert UTC date to PHT date for display
+            // UTC date format: "2026-05-12"
+            if (!utcDateStr) return '-';
+            
+            try {
+                // Parse the UTC date (midnight UTC)
+                const [year, month, day] = utcDateStr.split('-').map(Number);
+                const utcDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+                
+                // Convert to PHT by adding 8 hours
+                const phtDate = new Date(utcDate.getTime() + 8 * 60 * 60 * 1000);
+                
+                // Format as YYYY-MM-DD in PHT
+                const phtYear = phtDate.getUTCFullYear();
+                const phtMonth = String(phtDate.getUTCMonth() + 1).padStart(2, '0');
+                const phtDay = String(phtDate.getUTCDate()).padStart(2, '0');
+                
+                return `${phtYear}-${phtMonth}-${phtDay}`;
+            } catch (e) {
+                console.error('Error converting date:', e, utcDateStr);
+                return utcDateStr;
+            }
+        }
+
+        function getPHTTimeFromUTC(timeString) {
+            // Display times in PHT
+            // Old format (12-hour): PDT times from laptop - convert to PHT
+            // New format (ISO UTC): convert to PHT
+            if (!timeString) return '-';
+            
+            try {
+                // Check if it's old PDT format (12-hour with AM/PM)
+                if (timeString.includes('AM') || timeString.includes('PM')) {
+                    // Old format: PDT time - convert to PHT
+                    // PDT is UTC-7, PHT is UTC+8, so PDT to PHT is +15 hours
+                    const parts = timeString.trim().split(' ');
+                    const timePart = parts[0];
+                    const period = parts[1];
+                    
+                    const [hours, minutes, seconds] = timePart.split(':').map(Number);
+                    let hour24 = hours;
+                    if (period === 'PM' && hours !== 12) {
+                        hour24 = hours + 12;
+                    } else if (period === 'AM' && hours === 12) {
+                        hour24 = 0;
+                    }
+                    
+                    // Add 15 hours to convert PDT to PHT
+                    let phtHours = hour24 + 15;
+                    
+                    // Handle day overflow
+                    if (phtHours >= 24) {
+                        phtHours -= 24;
+                    }
+                    
+                    // Format time as HH:MM:SS AM/PM
+                    const phtPeriod = phtHours >= 12 ? 'PM' : 'AM';
+                    const displayHours = phtHours % 12 || 12;
+                    const displayMinutes = String(minutes).padStart(2, '0');
+                    const displaySeconds = String(seconds).padStart(2, '0');
+                    
+                    return `${displayHours}:${displayMinutes}:${displaySeconds} ${phtPeriod}`;
+                } else {
+                    // New format: ISO UTC string like "2026-05-29T05:22:52.000Z"
+                    const utcDate = new Date(timeString);
+                    
+                    // Get the UTC time components
+                    const utcHours = utcDate.getUTCHours();
+                    const utcMinutes = utcDate.getUTCMinutes();
+                    const utcSeconds = utcDate.getUTCSeconds();
+                    
+                    // Convert to PHT by adding 8 hours
+                    let phtHours = utcHours + 8;
+                    
+                    // Handle day overflow
+                    if (phtHours >= 24) {
+                        phtHours -= 24;
+                    }
+                    
+                    // Format time as HH:MM:SS AM/PM
+                    const period = phtHours >= 12 ? 'PM' : 'AM';
+                    const displayHours = phtHours % 12 || 12;
+                    const displayMinutes = String(utcMinutes).padStart(2, '0');
+                    const displaySeconds = String(utcSeconds).padStart(2, '0');
+                    
+                    return `${displayHours}:${displayMinutes}:${displaySeconds} ${period}`;
+                }
+            } catch (e) {
+                console.error('Error converting time:', e, timeString);
+                return timeString;
+            }
+        }
+        let clockInterval;
+
+        function startClock() {
+            if (clockInterval) clearInterval(clockInterval);
+            clockInterval = setInterval(updateClock, 1000);
+            updateClock();
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('timeDisplay').textContent = timeStr;
+            document.getElementById('dateDisplay').textContent = dateStr;
+        }
+
+        function updateClockStatus() {
+            // Use UTC date for consistency
+            const utcDate = new Date().toISOString().split('T')[0];
+            let todayLog = data.logs.find(l => l.empId === currentUser.id && l.date === utcDate);
+            
+            // If no log for today, check if there's an unfinished log from yesterday
+            let yesterdayLog = null;
+            if (!todayLog) {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayDate = yesterday.toISOString().split('T')[0];
+                yesterdayLog = data.logs.find(l => l.empId === currentUser.id && l.date === yesterdayDate && !l.clockOut);
+            }
+
+            const clockInBtn = document.getElementById('clockInBtn');
+            const clockOutBtn = document.getElementById('clockOutBtn');
+            const statusBadge = document.getElementById('currentStatus');
+
+            clockInBtn.style.display = 'none';
+            clockOutBtn.style.display = 'none';
+            statusBadge.innerHTML = '';
+            clockInBtn.textContent = 'Clock In';
+
+            if (!todayLog && !yesterdayLog) {
+                // No active log - show Clock In
+                clockInBtn.style.display = 'inline-block';
+                statusBadge.innerHTML = '<span class="status-badge">Not Clocked In</span>';
+            } else if (yesterdayLog && !yesterdayLog.clockOut) {
+                // Clocked in yesterday, still working
+                clockOutBtn.style.display = 'inline-block';
+                statusBadge.innerHTML = '<span class="status-badge clocked-in">Clocked In (Since Yesterday)</span>';
+            } else if (todayLog && !todayLog.clockOut) {
+                // Clocked in today
+                clockOutBtn.style.display = 'inline-block';
+                statusBadge.innerHTML = '<span class="status-badge clocked-in">Clocked In</span>';
+            } else if (todayLog && todayLog.clockOut) {
+                // Clocked out today - show Clock In for next entry
+                clockInBtn.style.display = 'inline-block';
+                clockInBtn.textContent = 'Clock In';
+                statusBadge.innerHTML = '<span class="status-badge clocked-out">Clocked Out</span>';
+            }
+        }
+
+        function clockIn() {
+            // Use UTC for all logging
+            const utcNow = new Date();
+            const utcDate = utcNow.toISOString().split('T')[0]; // UTC date
+            const utcTime = utcNow.toISOString(); // Full UTC ISO string
+
+            let todayLog = data.logs.find(l => l.empId === currentUser.id && l.date === utcDate);
+            if (!todayLog) {
+                todayLog = {
+                    empId: currentUser.id,
+                    empName: currentUser.name,
+                    date: utcDate,
+                    clockIn: utcTime,
+                    clockOut: null,
+                    breakStart: null,
+                    breakEnd: null
+                };
+                data.logs.push(todayLog);
+            } else if (todayLog.clockOut) {
+                // Already clocked out - reset for clock in again (same day re-entry)
+                todayLog.clockOut = null;
+                todayLog.breakStart = null;
+                todayLog.breakEnd = null;
+            }
+
+            saveData();
+            updateClockStatus();
+            showAlert('✅ Clocked in at ' + utcToLocal(utcTime) + '! Backup downloading...', 'success');
+            
+            // Auto-download backup
+            setTimeout(() => {
+                downloadDataAsJson();
+            }, 500);
+        }
+
+        function clockOut() {
+            // Use UTC for all logging
+            const utcNow = new Date();
+            const utcDate = utcNow.toISOString().split('T')[0];
+            const utcTime = utcNow.toISOString();
+
+            let todayLog = data.logs.find(l => l.empId === currentUser.id && l.date === utcDate);
+            
+            // If no log for today, check yesterday's log (in case shift spans days)
+            if (!todayLog) {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayDate = yesterday.toISOString().split('T')[0];
+                todayLog = data.logs.find(l => l.empId === currentUser.id && l.date === yesterdayDate && !l.clockOut);
+            }
+            
+            if (todayLog) {
+                todayLog.clockOut = utcTime;
+                saveData();
+                updateClockStatus();
+                loadEmployeeHistory();
+                showAlert('✅ Clocked out at ' + utcToLocal(utcTime) + '! Backup downloading...', 'success');
+                
+                // Auto-download backup
+                setTimeout(() => {
+                    downloadDataAsJson();
+                }, 500);
+            }
+        }
+
+        // ==================== EMPLOYEE HISTORY ====================
+        function loadEmployeeHistory() {
+            const table = document.getElementById('employeeHistoryTable');
+            table.innerHTML = '';
+
+            const employeeLogs = data.logs.filter(l => l.empId === currentUser.id);
+
+            if (employeeLogs.length === 0) {
+                table.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--gray-500);">No time logs yet</td></tr>';
+                return;
+            }
+
+            employeeLogs.forEach(log => {
+                const netHours = calculateNetHours(log);
+                const row = `
+                    <tr>
+                        <td>${utcDateToPHTDate(log.date)}</td>
+                        <td>${utcToLocal(log.clockIn)}</td>
+                        <td>${utcToLocal(log.clockOut)}</td>
+                        <td>${netHours}</td>
+                    </tr>
+                `;
+                table.innerHTML += row;
+            });
+        }
+
+        // ==================== ALL LOGS VIEW ====================
+        function deleteLog(empId, date) {
+            showDeleteConfirm(`Delete log for ${date}?`, () => {
+                data.logs = data.logs.filter(l => !(l.empId === empId && l.date === date));
+                saveData();
+                showAlert('Log deleted', 'success');
+            });
+        }
+
+        // File import handler
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (file) {
+                importDataFromJson(file);
+            }
+            document.getElementById('fileInput').value = '';
+        }
+
+        // Clear all data confirmation
+        function confirmClearAllData() {
+            showDeleteConfirm('⚠️ This will DELETE ALL employee records and time logs. This cannot be undone. Are you sure?', () => {
+                data.employees = [];
+                data.logs = [];
+                saveData();
+                loadEmployees();
+                updateDataSummary();
+                showAlert('All data has been cleared', 'danger');
+            });
+        }
+
+        // Update data summary in settings
+        function updateDataSummary() {
+            document.getElementById('totalEmployees').textContent = data.employees.length;
+            document.getElementById('totalLogs').textContent = data.logs.length;
+        }
+
+        // ==================== PAYROLL EXPORT ====================
+        document.addEventListener('change', function(e) {
+            if (e.target.id === 'periodSelect') {
+                const customRange = document.getElementById('customDateRange');
+                customRange.style.display = e.target.value === 'custom' ? 'block' : 'none';
+            }
+        });
+
+        function getPayrollDateRange(period) {
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const currentMonth = today.getMonth();
+
+            let from, to;
+
+            if (period === 'current-25-9') {
+                if (today.getDate() >= 25) {
+                    from = new Date(currentYear, currentMonth, 25);
+                    to = new Date(currentYear, currentMonth + 1, 9);
+                } else {
+                    from = new Date(currentYear, currentMonth - 1, 25);
+                    to = new Date(currentYear, currentMonth, 9);
+                }
+            } else if (period === 'current-10-24') {
+                if (today.getDate() >= 10 && today.getDate() <= 24) {
+                    from = new Date(currentYear, currentMonth, 10);
+                    to = new Date(currentYear, currentMonth, 24);
+                } else {
+                    from = new Date(currentYear, currentMonth, 10);
+                    to = new Date(currentYear, currentMonth, 24);
+                }
+            }
+
+            return {
+                from: from.toISOString().split('T')[0],
+                to: to.toISOString().split('T')[0]
+            };
+        }
+
+        function exportPayroll() {
+            const period = document.getElementById('periodSelect').value;
+            if (!period) {
+                showMessage('exportMessage', 'Please select a period', 'danger');
+                return;
+            }
+
+            let range;
+            if (period === 'custom') {
+                const fromDate = document.getElementById('customFromDate').value;
+                const toDate = document.getElementById('customToDate').value;
+                if (!fromDate || !toDate) {
+                    showMessage('exportMessage', 'Please enter both dates', 'danger');
+                    return;
+                }
+                range = { from: fromDate, to: toDate };
+            } else {
+                range = getPayrollDateRange(period);
+            }
+
+            // Filter logs for date range
+            const filteredLogs = data.logs.filter(log => {
+                return log.date >= range.from && log.date <= range.to;
+            });
+
+            if (filteredLogs.length === 0) {
+                showMessage('exportMessage', 'No logs found for this period', 'warning');
+                return;
+            }
+
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+
+            // SHEET 1: Detailed Logs
+            const detailedData = [['Employee Name', 'Employee ID', 'Date (UTC)', 'Clock In (PHT)', 'Clock Out (PHT)', 'Hours']];
+            filteredLogs.forEach(log => {
+                detailedData.push([
+                    log.empName,
+                    log.empId,
+                    log.date,
+                    getPHTTimeFromUTC(log.clockIn) || '-',
+                    getPHTTimeFromUTC(log.clockOut) || '-',
+                    calculateNetHours(log)
+                ]);
+            });
+
+            const ws1 = XLSX.utils.aoa_to_sheet(detailedData);
+            ws1['!cols'] = [
+                { wch: 15 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 10 }
+            ];
+            XLSX.utils.book_append_sheet(wb, ws1, 'Detailed Logs');
+
+            // SHEET 2: Daily Summary
+            const summaryByDay = {};
+            filteredLogs.forEach(log => {
+                const key = `${log.date}-${log.empId}`;
+                if (!summaryByDay[key]) {
+                    summaryByDay[key] = {
+                        date: log.date,
+                        empId: log.empId,
+                        empName: log.empName,
+                        hours: 0
+                    };
+                }
+                const hours = parseFloat(calculateNetHours(log)) || 0;
+                summaryByDay[key].hours += hours;
+            });
+
+            const summaryData = [['Employee Name', 'Employee ID', 'Date', 'Total Hours']];
+            Object.values(summaryByDay).forEach(item => {
+                summaryData.push([item.empName, item.empId, item.date, item.hours.toFixed(2)]);
+            });
+
+            const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
+            ws2['!cols'] = [
+                { wch: 15 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 12 }
+            ];
+            XLSX.utils.book_append_sheet(wb, ws2, 'Daily Summary');
+
+            // SHEET 3: Employee Summary
+            const employeeSummary = {};
+            filteredLogs.forEach(log => {
+                if (!employeeSummary[log.empId]) {
+                    employeeSummary[log.empId] = {
+                        empName: log.empName,
+                        empId: log.empId,
+                        totalHours: 0,
+                        daysWorked: 0
+                    };
+                }
+                const hours = parseFloat(calculateNetHours(log)) || 0;
+                employeeSummary[log.empId].totalHours += hours;
+                employeeSummary[log.empId].daysWorked += 1;
+            });
+
+            const empSummaryData = [['Employee Name', 'Employee ID', 'Days Worked', 'Total Hours', 'Average per Day']];
+            Object.values(employeeSummary).forEach(item => {
+                const avg = (item.totalHours / item.daysWorked).toFixed(2);
+                empSummaryData.push([item.empName, item.empId, item.daysWorked, item.totalHours.toFixed(2), avg]);
+            });
+
+            const ws3 = XLSX.utils.aoa_to_sheet(empSummaryData);
+            ws3['!cols'] = [
+                { wch: 15 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 15 }
+            ];
+            XLSX.utils.book_append_sheet(wb, ws3, 'Employee Summary');
+
+            // Download
+            const filename = `payroll_${range.from}_to_${range.to}.xlsx`;
+            XLSX.writeFile(wb, filename);
+            showMessage('exportMessage', 'Excel file downloaded successfully!', 'success');
+        }
+
+        // ==================== UTILITIES ====================
+        function calculateNetHours(log) {
+            if (!log.clockIn || !log.clockOut) return '-';
+
+            try {
+                // Check if times are in old format (12-hour PDT) or new format (ISO UTC)
+                const isOldFormat = log.clockIn.includes('AM') || log.clockIn.includes('PM');
+                
+                if (isOldFormat) {
+                    // Old format: "6:15:17 AM" in PDT - convert to UTC then calculate
+                    const clockInUTC = convertPDTToUTC(log.clockIn);
+                    const clockOutUTC = convertPDTToUTC(log.clockOut);
+                    
+                    if (!clockInUTC || !clockOutUTC) {
+                        return '-';
+                    }
+                    
+                    const clockInTime = new Date(clockInUTC).getTime();
+                    const clockOutTime = new Date(clockOutUTC).getTime();
+                    
+                    if (clockInTime > clockOutTime) {
+                        // Might be next day, add 24 hours
+                        const diffMs = (clockOutTime + 24 * 60 * 60 * 1000) - clockInTime;
+                        const diffHours = diffMs / (1000 * 60 * 60);
+                        return diffHours.toFixed(2);
+                    }
+                    
+                    const diffMs = clockOutTime - clockInTime;
+                    const diffHours = diffMs / (1000 * 60 * 60);
+                    return diffHours.toFixed(2);
+                } else {
+                    // New format: ISO UTC string
+                    const clockInTime = new Date(log.clockIn).getTime();
+                    const clockOutTime = new Date(log.clockOut).getTime();
+                    
+                    if (clockInTime > clockOutTime) {
+                        return '-';
+                    }
+                    
+                    const diffMs = clockOutTime - clockInTime;
+                    const diffHours = diffMs / (1000 * 60 * 60);
+                    
+                    return diffHours.toFixed(2);
+                }
+            } catch (e) {
+                console.error('Error calculating hours:', e, log);
+                return '-';
+            }
+        }
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Deactivate all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+
+            // Activate button
+            event.target.classList.add('active');
+        }
+
+        function showAlert(msg, type = 'info') {
+            const msg1 = document.createElement('div');
+            msg1.className = `alert alert-${type}`;
+            msg1.textContent = msg;
+            document.querySelector('.content').insertBefore(msg1, document.querySelector('.content').firstChild);
+            setTimeout(() => msg1.remove(), 4000);
+        }
+
+        function showMessage(elementId, msg, type) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+            setTimeout(() => {
+                el.innerHTML = '';
+            }, 4000);
+        }
+
+        function showDeleteConfirm(msg, callback) {
+            document.getElementById('deleteMessage').textContent = msg;
+            document.getElementById('deleteModal').classList.add('active');
+            document.getElementById('confirmDeleteBtn').onclick = () => {
+                callback();
+                closeDeleteModal();
+            };
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+        }
+
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadData();
+            setupOneDriveSync();
+
+            // Load sample data if empty
+            if (data.employees.length === 0) {
+                data.employees = [
+                    { id: 'EMP001', name: 'John Doe', password: 'Temp@123', firstLogin: true, createdAt: new Date().toISOString() },
+                    { id: 'EMP002', name: 'Jane Smith', password: 'Temp@123', firstLogin: true, createdAt: new Date().toISOString() }
+                ];
+                saveData();
+            }
+
+            // Check if user has a saved session
+            const savedUser = localStorage.getItem('currentUser');
+            const savedIsAdmin = localStorage.getItem('isAdmin');
+            
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    isAdmin = savedIsAdmin === 'true';
+                    
+                    // Auto-login
+                    document.querySelector('.login-screen').classList.remove('active');
+                    document.getElementById('appContainer').classList.add('active');
+                    
+                    if (isAdmin) {
+                        document.getElementById('employeeView').style.display = 'none';
+                        document.getElementById('adminView').style.display = 'block';
+                        document.getElementById('userInfo').textContent = 'Admin User';
+                        loadEmployees();
+                        updateDataSummary();
+                    } else {
+                        document.getElementById('employeeView').style.display = 'block';
+                        document.getElementById('adminView').style.display = 'none';
+                        document.getElementById('userInfo').textContent = `${currentUser.name} (ID: ${currentUser.id})`;
+                        
+                        // Re-sync employee data from OneDrive
+                        const latestEmployee = data.employees.find(e => e.id === currentUser.id);
+                        if (latestEmployee) {
+                            currentUser = latestEmployee;
+                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        }
+                        
+                        updateClockStatus();
+                        loadEmployeeHistory();
+                        startClock();
+                    }
+                } catch (e) {
+                    console.error('Error restoring session:', e);
+                    localStorage.removeItem('currentUser');
+                    localStorage.removeItem('isAdmin');
+                }
+            }
+        });
+
+        // Periodically sync data
+        setInterval(async () => {
+            if (!isSyncing) {
+                await syncDataFromOneDrive();
+                if (currentUser && isAdmin) {
+                    updateDataSummary();
+                }
+                // Keep session alive
+                if (currentUser) {
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    localStorage.setItem('isAdmin', isAdmin ? 'true' : 'false');
+                }
+            }
+        }, 10000); // Sync every 10 seconds
+
+        // Re-check session when window comes into focus (after laptop restart/sleep)
+        window.addEventListener('focus', function() {
+            if (!currentUser) {
+                const savedUser = localStorage.getItem('currentUser');
+                const savedIsAdmin = localStorage.getItem('isAdmin');
+                
+                if (savedUser) {
+                    try {
+                        currentUser = JSON.parse(savedUser);
+                        isAdmin = savedIsAdmin === 'true';
+                        
+                        // Reload the page to properly restore UI
+                        location.reload();
+                    } catch (e) {
+                        console.log('Session check failed:', e);
+                    }
+                }
+            }
+        });
+
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && document.querySelector('.login-screen.active')) {
+                if (document.getElementById('adminLoginScreen').classList.contains('active')) {
+                    adminLogin();
+                } else {
+                    login();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
