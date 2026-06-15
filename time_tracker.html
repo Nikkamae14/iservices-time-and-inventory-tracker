@@ -1071,6 +1071,7 @@
 
         // ==================== EMPLOYEE MANAGEMENT ====================
         function addEmployee() {
+            if (!data.employees) data.employees = [];
             const id = document.getElementById('newEmpId').value.trim();
             const name = document.getElementById('newEmpName').value.trim();
             const password = document.getElementById('newEmpPassword').value;
@@ -1104,6 +1105,8 @@
 
         function deleteEmployee(id) {
             showDeleteConfirm(`Are you sure you want to delete this employee? All their time logs will be removed.`, () => {
+                if (!data.employees) data.employees = [];
+                if (!data.logs) data.logs = [];
                 data.employees = data.employees.filter(e => e.id !== id);
                 data.logs = data.logs.filter(l => l.empId !== id);
                 saveData();
@@ -1113,6 +1116,7 @@
         }
 
         function loadEmployees() {
+            if (!data.employees) data.employees = [];
             const table = document.getElementById('employeesTable');
             table.innerHTML = '';
 
@@ -1412,6 +1416,7 @@
         }
 
         function clockIn() {
+            if (!data.logs) data.logs = [];
             // Use UTC for all logging
             const utcNow = new Date();
             const utcDate = utcNow.toISOString().split('T')[0]; // UTC date
@@ -1442,6 +1447,7 @@
         }
 
         function clockOut() {
+            if (!data.logs) data.logs = [];
             // Use UTC for all logging
             const utcNow = new Date();
             const utcDate = utcNow.toISOString().split('T')[0];
@@ -1468,6 +1474,7 @@
 
         // ==================== EMPLOYEE HISTORY ====================
         function loadEmployeeHistory() {
+            if (!data.logs) data.logs = [];
             const table = document.getElementById('employeeHistoryTable');
             table.innerHTML = '';
 
