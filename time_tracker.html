@@ -791,17 +791,33 @@
                     const firebaseData = await response.json();
                     if (firebaseData && firebaseData.employees) {
                         data = firebaseData;
-                        // Update UI if logged in
-                        if (currentUser) {
-                            if (isAdmin) {
-                                loadEmployees();
-                                updateDataSummary();
-                            } else {
-                                loadEmployeeHistory();
-                                updateClockStatus();
-                            }
+                    } else {
+                        // Initialize with empty data if first time
+                        data = {
+                            employees: [],
+                            logs: [],
+                            version: 1
+                        };
+                        await saveData();
+                    }
+                    // Update UI if logged in
+                    if (currentUser) {
+                        if (isAdmin) {
+                            loadEmployees();
+                            updateDataSummary();
+                        } else {
+                            loadEmployeeHistory();
+                            updateClockStatus();
                         }
                     }
+                } else {
+                    // Initialize if no data
+                    data = {
+                        employees: [],
+                        logs: [],
+                        version: 1
+                    };
+                    await saveData();
                 }
             } catch (e) {
                 console.log('Firebase load (will retry):', e.message);
@@ -1508,8 +1524,8 @@
 
         // Update data summary in settings
         function updateDataSummary() {
-            document.getElementById('totalEmployees').textContent = data.employees.length;
-            document.getElementById('totalLogs').textContent = data.logs.length;
+            document.getElementById('totalEmployees').textContent = (data.employees || []).length;
+            document.getElementById('totalLogs').textContent = (data.logs || []).length;
         }
 
         // ==================== PAYROLL EXPORT ====================
