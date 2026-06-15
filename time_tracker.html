@@ -1422,12 +1422,7 @@
 
             saveData();
             updateClockStatus();
-            showAlert('✅ Clocked in at ' + utcToLocal(utcTime) + '! Backup downloading...', 'success');
-            
-            // Auto-download backup
-            setTimeout(() => {
-                downloadDataAsJson();
-            }, 500);
+            showAlert('✅ Clocked in at ' + utcToLocal(utcTime), 'success');
         }
 
         function clockOut() {
@@ -1451,12 +1446,7 @@
                 saveData();
                 updateClockStatus();
                 loadEmployeeHistory();
-                showAlert('✅ Clocked out at ' + utcToLocal(utcTime) + '! Backup downloading...', 'success');
-                
-                // Auto-download backup
-                setTimeout(() => {
-                    downloadDataAsJson();
-                }, 500);
+                showAlert('✅ Clocked out at ' + utcToLocal(utcTime), 'success');
             }
         }
 
