@@ -1830,10 +1830,10 @@
             }
         });
 
-        // Periodically sync data
+        // Periodically sync data with Firebase
         setInterval(async () => {
             if (!isSyncing) {
-                await syncDataFromOneDrive();
+                await loadDataFromFirebase();
                 if (currentUser && isAdmin) {
                     updateDataSummary();
                 }
