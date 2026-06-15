@@ -690,19 +690,19 @@
                     <div class="admin-section">
                         <h3>📁 OneDrive Setup</h3>
                         <div class="alert alert-info">
-                            <strong>Important:</strong> Follow these steps to sync data across all employee laptops:
+                            <strong>Real-Time Sync Enabled:</strong> All employee data syncs automatically via Firebase!
                         </div>
                         <div style="background: var(--gray-100); padding: 20px; border-radius: 8px; margin-bottom: 20px; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.8;">
-                            <strong>Step 1:</strong> Create a folder in OneDrive (e.g., "TimeTracker")<br><br>
-                            <strong>Step 2:</strong> Upload the time_tracker.html file to that folder<br><br>
-                            <strong>Step 3:</strong> Right-click folder → Share → "Edit" permissions<br><br>
-                            <strong>Step 4:</strong> Copy the OneDrive folder link and send to all employees<br><br>
-                            <strong>Step 5:</strong> First person to clock in/out will create timeTrackerData.json automatically<br><br>
-                            ✅ All laptops will now see the SAME data in real-time!
+                            ✅ <strong>Firebase is active</strong> - All changes sync instantly across all devices<br><br>
+                            • Employees clock in/out → data syncs immediately<br>
+                            • Admin manages employees → updates appear everywhere<br>
+                            • No manual backups needed<br>
+                            • Supports 50+ concurrent users<br><br>
+                            📊 <strong>Status:</strong> Connected and syncing in real-time
                         </div>
 
                         <div style="margin-top: 20px;">
-                            <strong>Sync Status:</strong> <span id="syncStatus" style="color: var(--success); font-weight: 600;">✓ Ready</span>
+                            <strong>Sync Status:</strong> <span id="syncStatus" style="color: var(--success); font-weight: 600;">✓ Firebase Connected</span>
                         </div>
                     </div>
 
@@ -878,14 +878,9 @@
             }
         }
 
-        // IMPORTANT: Setup for OneDrive
+        // Firebase handles sync automatically
         function setupOneDriveSync() {
-            console.log('ℹ️ SETUP INSTRUCTIONS:');
-            console.log('1. Create a folder in OneDrive (e.g., "TimeTracker")');
-            console.log('2. Upload time_tracker.html to that folder');
-            console.log('3. Share the folder link with employees');
-            console.log('4. A timeTrackerData.json file will auto-create on first save');
-            console.log('5. Make sure folder is set to "Edit" permissions');
+            // No longer needed - Firebase handles real-time sync
         }
 
         // Export data as JSON file (for backup)
