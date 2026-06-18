@@ -913,7 +913,7 @@
         }
 
         // ==================== AUTHENTICATION ====================
-        function login() {
+        async function login() {
             const id = document.getElementById('loginId').value.trim();
             const password = document.getElementById('loginPassword').value;
 
@@ -922,6 +922,10 @@
                 return;
             }
 
+            // Wait for Firebase data to load first
+            await loadData();
+
+            if (!data.employees) data.employees = [];
             const employee = data.employees.find(e => e.id === id);
             if (!employee) {
                 showLoginError('Employee not found');
@@ -959,7 +963,7 @@
             document.getElementById('loginPassword').value = '';
         }
 
-        function adminLogin() {
+        async function adminLogin() {
             const password = document.getElementById('adminPassword').value;
             if (password !== ADMIN_PASSWORD) {
                 document.getElementById('adminLoginError').textContent = 'Incorrect admin password';
@@ -972,6 +976,9 @@
             // Save session to localStorage
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             localStorage.setItem('isAdmin', 'true');
+            
+            // Wait for Firebase data to load
+            await loadData();
             
             document.getElementById('adminLoginScreen').classList.remove('active');
             document.getElementById('appContainer').classList.add('active');
