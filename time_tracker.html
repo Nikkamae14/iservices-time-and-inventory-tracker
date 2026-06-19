@@ -957,6 +957,21 @@
                 updateClockStatus();
                 loadEmployeeHistory();
                 startClock();
+                
+                // Check if employee has unclosed time log
+                if (!data.logs) data.logs = [];
+                const todayUTC = new Date().toISOString().split('T')[0];
+                const yesterdayUTC = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+                
+                const unfinishedLog = data.logs.find(l => 
+                    l.empId === employee.id && 
+                    (l.date === todayUTC || l.date === yesterdayUTC) && 
+                    l.clockIn && !l.clockOut
+                );
+                
+                if (unfinishedLog) {
+                    showAlert(`⚠️ You have an active clock-in from ${unfinishedLog.date}! Don't forget to clock out.`, 'warning');
+                }
             }
 
             document.getElementById('loginId').value = '';
@@ -1359,11 +1374,22 @@
             }
         }
         let clockInterval;
+        let workTimeCheckInterval;
 
         function startClock() {
             if (clockInterval) clearInterval(clockInterval);
             clockInterval = setInterval(updateClock, 1000);
             updateClock();
+            
+            // Request notification permission
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+            
+            // Start checking for 9-hour work time (every 15 minutes)
+            if (workTimeCheckInterval) clearInterval(workTimeCheckInterval);
+            workTimeCheckInterval = setInterval(checkWorkTime, 15 * 60 * 1000);
+            checkWorkTime(); // Check immediately
         }
 
         function updateClock() {
@@ -1372,6 +1398,43 @@
             const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             document.getElementById('timeDisplay').textContent = timeStr;
             document.getElementById('dateDisplay').textContent = dateStr;
+        }
+
+        function checkWorkTime() {
+            if (!data.logs) return;
+            const utcDate = new Date().toISOString().split('T')[0];
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayDate = yesterday.toISOString().split('T')[0];
+            
+            let currentLog = data.logs.find(l => l.empId === currentUser.id && l.date === utcDate && l.clockIn && !l.clockOut);
+            if (!currentLog) {
+                currentLog = data.logs.find(l => l.empId === currentUser.id && l.date === yesterdayDate && l.clockIn && !l.clockOut);
+            }
+            
+            if (currentLog && currentLog.clockIn) {
+                const clockInTime = new Date(currentLog.clockIn);
+                const nowTime = new Date();
+                const hoursWorked = (nowTime - clockInTime) / (1000 * 60 * 60);
+                
+                if (hoursWorked >= 9) {
+                    showWorkNotification('Don\'t forget to clock out.');
+                }
+            }
+        }
+
+        function showWorkNotification(message) {
+            // Browser notification (if permitted)
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Time Tracker Reminder', {
+                    body: message,
+                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%234a90e2"/><text x="50" y="60" font-size="50" fill="white" text-anchor="middle" dominant-baseline="middle">⏱</text></svg>',
+                    tag: 'work-time-alert'
+                });
+            }
+            
+            // Also show in-app alert
+            showAlert(`${message}`, 'warning');
         }
 
         function updateClockStatus() {
@@ -1405,15 +1468,18 @@
                 // Clocked in yesterday, still working
                 clockOutBtn.style.display = 'inline-block';
                 statusBadge.innerHTML = '<span class="status-badge clocked-in">Clocked In (Since Yesterday)</span>';
+                showPersistentWarning('⏱️ You are still clocked in! Remember to clock out.');
             } else if (todayLog && !todayLog.clockOut) {
                 // Clocked in today
                 clockOutBtn.style.display = 'inline-block';
                 statusBadge.innerHTML = '<span class="status-badge clocked-in">Clocked In</span>';
+                showPersistentWarning('⏱️ You are clocked in! Remember to clock out before leaving.');
             } else if (todayLog && todayLog.clockOut) {
                 // Clocked out today - show Clock In for next entry
                 clockInBtn.style.display = 'inline-block';
                 clockInBtn.textContent = 'Clock In';
                 statusBadge.innerHTML = '<span class="status-badge clocked-out">Clocked Out</span>';
+                removePersistentWarning();
             }
         }
 
@@ -1783,6 +1849,36 @@
             setTimeout(() => {
                 el.innerHTML = '';
             }, 4000);
+        }
+
+        function showPersistentWarning(message) {
+            let warningBanner = document.getElementById('clockInWarning');
+            if (!warningBanner) {
+                warningBanner = document.createElement('div');
+                warningBanner.id = 'clockInWarning';
+                warningBanner.style.cssText = `
+                    background: #ff6b6b;
+                    color: white;
+                    padding: 15px;
+                    text-align: center;
+                    font-weight: bold;
+                    font-size: 16px;
+                    margin-bottom: 20px;
+                    border-radius: 6px;
+                    animation: pulse 1s infinite;
+                `;
+                const employeeView = document.getElementById('employeeView');
+                employeeView.insertBefore(warningBanner, employeeView.firstChild);
+            }
+            warningBanner.textContent = message;
+            warningBanner.style.display = 'block';
+        }
+
+        function removePersistentWarning() {
+            const warningBanner = document.getElementById('clockInWarning');
+            if (warningBanner) {
+                warningBanner.style.display = 'none';
+            }
         }
 
         function showDeleteConfirm(msg, callback) {
