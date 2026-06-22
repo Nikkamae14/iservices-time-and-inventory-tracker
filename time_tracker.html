@@ -995,6 +995,9 @@
             // Wait for Firebase data to load
             await loadData();
             
+            // Small delay to ensure data is fully synchronized
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
             document.getElementById('adminLoginScreen').classList.remove('active');
             document.getElementById('appContainer').classList.add('active');
             document.getElementById('employeeView').style.display = 'none';
@@ -1134,7 +1137,9 @@
 
         function loadEmployees() {
             if (!data.employees) data.employees = [];
+            if (!data.logs) data.logs = [];
             const table = document.getElementById('employeesTable');
+            if (!table) return; // Exit if table doesn't exist
             table.innerHTML = '';
 
             data.employees.forEach(emp => {
