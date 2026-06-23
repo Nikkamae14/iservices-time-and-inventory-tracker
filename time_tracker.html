@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Employee Time Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -1502,12 +1505,10 @@
                 // Clocked in yesterday, still working
                 clockOutBtn.style.display = 'inline-block';
                 statusBadge.innerHTML = '<span class="status-badge clocked-in">Clocked In (Since Yesterday)</span>';
-                showPersistentWarning('⏱️ You are still clocked in! Remember to clock out.');
             } else if (todayLog && !todayLog.clockOut) {
                 // Clocked in today
                 clockOutBtn.style.display = 'inline-block';
                 statusBadge.innerHTML = '<span class="status-badge clocked-in">Clocked In</span>';
-                showPersistentWarning('⏱️ You are clocked in! Remember to clock out before leaving.');
             } else if (todayLog && todayLog.clockOut) {
                 // Clocked out today - show Clock In for next entry
                 clockInBtn.style.display = 'inline-block';
