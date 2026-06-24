@@ -256,7 +256,6 @@
 
         /* CLOCK IN/OUT SECTION */
         .clock-section {
-            display: block !important;
             text-align: center;
             padding: 40px;
             background: var(--gray-50);
@@ -317,7 +316,6 @@
 
         /* LOGS TABLE */
         .logs-section {
-            display: block !important;
             margin-top: 30px;
         }
 
@@ -361,7 +359,6 @@
 
         /* ADMIN PANEL */
         .admin-section {
-            display: block !important;
             margin-bottom: 30px;
             padding: 20px;
             background: var(--gray-50);
@@ -609,6 +606,7 @@
             <div id="adminView" style="display: none;">
                 <div class="tabs">
                     <button class="tab-btn active" onclick="switchTab('employees')">Manage Employees</button>
+                    <button class="tab-btn" onclick="switchTab('allLogs')">All Logs</button>
                     <button class="tab-btn" onclick="switchTab('export')">Export Payroll</button>
                     <button class="tab-btn" onclick="switchTab('settings')">Settings</button>
                 </div>
@@ -691,6 +689,27 @@
                 </div>
 
                 <!-- All Logs Tab -->
+                <div id="allLogs" class="tab-content">
+                    <div class="logs-section">
+                        <h3>All Employee Logs</h3>
+                        <div class="table-wrapper">
+                            <table id="allLogsTable" class="logs-table">
+                                <thead>
+                                    <tr>
+                                        <th onclick="sortTable('allLogsTable', 0)">Employee Name</th>
+                                        <th onclick="sortTable('allLogsTable', 1)">Employee ID</th>
+                                        <th onclick="sortTable('allLogsTable', 2)">Date</th>
+                                        <th onclick="sortTable('allLogsTable', 3)">Clock In (PHT)</th>
+                                        <th onclick="sortTable('allLogsTable', 4)">Clock Out (PHT)</th>
+                                        <th onclick="sortTable('allLogsTable', 5)">Hours Worked</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Settings Tab -->
                 <div id="settings" class="tab-content">
                     <div class="admin-section">
@@ -1661,6 +1680,34 @@
             document.getElementById('totalLogs').textContent = (data.logs || []).length;
         }
 
+        function loadAllLogs() {
+            if (!data.logs) data.logs = [];
+            const table = document.getElementById('allLogsTable');
+            if (!table) return;
+            const tbody = table.querySelector('tbody');
+            tbody.innerHTML = '';
+
+            // Get all logs and sort by date (newest first)
+            const sortedLogs = [...data.logs].sort((a, b) => new Date(b.clockIn) - new Date(a.clockIn));
+
+            sortedLogs.forEach(log => {
+                const row = document.createElement('tr');
+                const clockInTime = log.clockIn ? utcToLocal(log.clockIn) : '-';
+                const clockOutTime = log.clockOut ? utcToLocal(log.clockOut) : '-';
+                const hours = calculateNetHours(log.clockIn, log.clockOut);
+
+                row.innerHTML = `
+                    <td>${log.empName || 'Unknown'}</td>
+                    <td>${log.empId || '-'}</td>
+                    <td>${log.date || '-'}</td>
+                    <td>${clockInTime}</td>
+                    <td>${clockOutTime}</td>
+                    <td>${hours} hrs</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
         // ==================== PAYROLL EXPORT ====================
         document.addEventListener('change', function(e) {
             if (e.target.id === 'periodSelect') {
@@ -1891,6 +1938,13 @@
 
             // Activate button
             event.target.classList.add('active');
+            
+            // Load data for specific tabs
+            if (tabName === 'allLogs') {
+                loadAllLogs();
+            } else if (tabName === 'employees') {
+                loadEmployees();
+            }
         }
 
         function showAlert(msg, type = 'info') {
