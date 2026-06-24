@@ -1694,7 +1694,7 @@
                 const row = document.createElement('tr');
                 const clockInTime = log.clockIn ? utcToLocal(log.clockIn) : '-';
                 const clockOutTime = log.clockOut ? utcToLocal(log.clockOut) : '-';
-                const hours = calculateNetHours(log.clockIn, log.clockOut);
+                const hours = calculateNetHours(log); // Pass the log object, not individual times
 
                 row.innerHTML = `
                     <td>${log.empName || 'Unknown'}</td>
