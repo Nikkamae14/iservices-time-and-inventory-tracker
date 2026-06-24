@@ -1570,9 +1570,9 @@
                 todayLog.clockOut = utcTime;
                 saveData();
                 
-                // Remove ALL warning elements
+                // Remove ALL warning/notification banners
                 document.querySelectorAll('[id*="Warning"]').forEach(el => el.remove());
-                document.querySelectorAll('[id*="Alert"]').forEach(el => el.remove());
+                document.querySelectorAll('[id*="Banner"]').forEach(el => el.remove());
                 
                 updateClockStatus();
                 loadEmployeeHistory();
@@ -1918,6 +1918,13 @@
             // Remove all warning banners (in case multiple exist)
             const banners = document.querySelectorAll('#clockInWarning');
             banners.forEach(banner => banner.remove());
+        }
+
+        function removeWorkHoursBanner() {
+            const banner = document.getElementById('workHoursBanner');
+            if (banner) {
+                banner.remove();
+            }
         }
 
         function showDeleteConfirm(msg, callback) {
