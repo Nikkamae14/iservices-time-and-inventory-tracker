@@ -953,18 +953,9 @@
             document.querySelector('.login-screen').classList.remove('active');
             document.getElementById('appContainer').classList.add('active');
             
-            // Clear admin view content completely
-            const adminView = document.getElementById('adminView');
-            adminView.style.display = 'none';
-            adminView.style.visibility = 'hidden';
-            if (adminView.querySelector('.tab-content')) {
-                adminView.querySelectorAll('.tab-content').forEach(el => el.innerHTML = '');
-            }
-            
-            // Show and prepare employee view
-            const employeeView = document.getElementById('employeeView');
-            employeeView.style.display = 'block';
-            employeeView.style.visibility = 'visible';
+            // Hide admin view, show employee view
+            document.getElementById('employeeView').style.display = 'block';
+            document.getElementById('adminView').style.display = 'none';
             
             document.getElementById('userInfo').textContent = `${employee.name} (ID: ${employee.id})`;
 
@@ -1022,18 +1013,9 @@
             document.getElementById('adminLoginScreen').classList.remove('active');
             document.getElementById('appContainer').classList.add('active');
             
-            // Clear employee view content completely
-            const employeeView = document.getElementById('employeeView');
-            employeeView.style.display = 'none';
-            employeeView.style.visibility = 'hidden';
-            if (employeeView.querySelector('.tab-content')) {
-                employeeView.querySelectorAll('.tab-content').forEach(el => el.innerHTML = '');
-            }
-            
-            // Show and prepare admin view
-            const adminView = document.getElementById('adminView');
-            adminView.style.display = 'block';
-            adminView.style.visibility = 'visible';
+            // Hide employee view, show admin view
+            document.getElementById('employeeView').style.display = 'none';
+            document.getElementById('adminView').style.display = 'block';
             
             document.getElementById('userInfo').textContent = 'Admin User';
 
