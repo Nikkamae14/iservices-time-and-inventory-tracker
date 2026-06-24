@@ -927,6 +927,9 @@
 
             // Wait for Firebase data to load first
             await loadData();
+            
+            // Delay to ensure DOM and data are fully ready
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             if (!data.employees) data.employees = [];
             const employee = data.employees.find(e => e.id === id);
@@ -949,9 +952,17 @@
             
             document.querySelector('.login-screen').classList.remove('active');
             document.getElementById('appContainer').classList.add('active');
+            
+            // Force show employee view, hide admin view
             document.getElementById('employeeView').style.display = 'block';
+            document.getElementById('employeeView').style.visibility = 'visible';
             document.getElementById('adminView').style.display = 'none';
+            document.getElementById('adminView').style.visibility = 'hidden';
+            
             document.getElementById('userInfo').textContent = `${employee.name} (ID: ${employee.id})`;
+
+            // Wait for view to render before populating content
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             // Check if first login
             if (employee.firstLogin) {
@@ -998,15 +1009,23 @@
             // Wait for Firebase data to load
             await loadData();
             
-            // Small delay to ensure data is fully synchronized
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Longer delay to ensure DOM and data are fully ready
+            await new Promise(resolve => setTimeout(resolve, 500));
             
             document.getElementById('adminLoginScreen').classList.remove('active');
             document.getElementById('appContainer').classList.add('active');
+            
+            // Force hide employee view, show admin view
             document.getElementById('employeeView').style.display = 'none';
+            document.getElementById('employeeView').style.visibility = 'hidden';
             document.getElementById('adminView').style.display = 'block';
+            document.getElementById('adminView').style.visibility = 'visible';
+            
             document.getElementById('userInfo').textContent = 'Admin User';
 
+            // Wait a bit more to ensure view is rendered before populating
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
             loadEmployees();
             updateDataSummary();
 
