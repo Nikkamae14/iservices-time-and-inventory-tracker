@@ -983,6 +983,22 @@
 
             // Wait for view to render before populating content
             await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Ensure first tab is active in employee view
+            document.querySelectorAll('#employeeView .tab-content').forEach((tab, idx) => {
+                if (idx === 0) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            document.querySelectorAll('#employeeView .tab-btn').forEach((btn, idx) => {
+                if (idx === 0) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
 
             // Check if first login
             if (employee.firstLogin) {
@@ -1043,6 +1059,22 @@
 
             // Wait for view to render before populating
             await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Ensure first tab is active in admin view
+            document.querySelectorAll('#adminView .tab-content').forEach((tab, idx) => {
+                if (idx === 0) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            document.querySelectorAll('#adminView .tab-btn').forEach((btn, idx) => {
+                if (idx === 0) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
             
             loadEmployees();
             updateDataSummary();
