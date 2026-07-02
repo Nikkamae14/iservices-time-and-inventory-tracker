@@ -674,6 +674,37 @@
                     </div>
                 </div>
 
+                <!-- Edit Employee Modal -->
+                <div id="editEmpModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; flex-align: center;">
+                    <div style="background: white; margin: 50px auto; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px;">
+                        <h3>Edit Employee</h3>
+                        <div style="margin: 20px 0;">
+                            <div class="form-group">
+                                <label>Employee ID</label>
+                                <input type="text" id="editEmpId" placeholder="e.g., EMP001">
+                            </div>
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="editEmpName" placeholder="e.g., John Doe">
+                            </div>
+                            <div class="form-group">
+                                <label>Password</label>
+                                <input type="text" id="editEmpPassword" placeholder="Password">
+                            </div>
+                            <div class="form-group">
+                                <label>Scheduled Clock In Time</label>
+                                <input type="time" id="editEmpScheduledTime" placeholder="e.g., 07:30">
+                            </div>
+                            <input type="hidden" id="editEmpOldId">
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-primary" onclick="saveEmployeeChanges()">Save Changes</button>
+                            <button class="btn btn-secondary" onclick="closeEditEmpModal()">Cancel</button>
+                        </div>
+                        <div id="editEmpMessage" style="margin-top: 15px;"></div>
+                    </div>
+                </div>
+
                 <!-- Export Payroll Tab -->
                 <div id="export" class="tab-content">
                     <div class="admin-section">
@@ -1273,7 +1304,7 @@
             if (!notLoggedInList) return;
             
             const today = new Date().toISOString().split('T')[0];
-            const now = new Date();
+            const now = new Date(); // Admin is always in PHT, so this is correct
             
             const notLoggedIn = data.employees.filter(emp => {
                 if (!emp.scheduledTime) return false; // Skip if no scheduled time
@@ -1285,7 +1316,7 @@
                 
                 if (hasClockIn) return false; // Already logged in
                 
-                // Check if scheduled time has passed + 1 minute
+                // Check if scheduled time has passed + 1 minute (in PHT)
                 const [hours, mins] = emp.scheduledTime.split(':');
                 const scheduledTime = new Date(now);
                 scheduledTime.setHours(parseInt(hours), parseInt(mins), 0);
@@ -1323,13 +1354,61 @@
             const emp = data.employees.find(e => e.id === id);
             if (!emp) return;
 
-            const newName = prompt('Enter new name:', emp.name);
-            if (newName !== null && newName.trim()) {
-                emp.name = newName.trim();
-                saveData();
-                loadEmployees();
-                showAlert('Employee updated', 'success');
+            // Populate edit form
+            document.getElementById('editEmpId').value = emp.id;
+            document.getElementById('editEmpName').value = emp.name;
+            document.getElementById('editEmpPassword').value = emp.password;
+            document.getElementById('editEmpScheduledTime').value = emp.scheduledTime || '';
+            document.getElementById('editEmpOldId').value = emp.id; // Store original ID for tracking
+
+            // Show edit modal
+            document.getElementById('editEmpModal').style.display = 'block';
+        }
+
+        function saveEmployeeChanges() {
+            const oldId = document.getElementById('editEmpOldId').value;
+            const newId = document.getElementById('editEmpId').value.trim();
+            const newName = document.getElementById('editEmpName').value.trim();
+            const newPassword = document.getElementById('editEmpPassword').value.trim();
+            const newScheduledTime = document.getElementById('editEmpScheduledTime').value;
+
+            if (!newId || !newName || !newPassword || !newScheduledTime) {
+                showMessage('editEmpMessage', 'Please fill all fields', 'danger');
+                return;
             }
+
+            const empIndex = data.employees.findIndex(e => e.id === oldId);
+            if (empIndex === -1) return;
+
+            // Check for duplicate ID (if changed)
+            if (newId !== oldId && data.employees.find(e => e.id === newId)) {
+                showMessage('editEmpMessage', 'New ID already exists', 'danger');
+                return;
+            }
+
+            // Update employee
+            data.employees[empIndex].id = newId;
+            data.employees[empIndex].name = newName;
+            data.employees[empIndex].password = newPassword;
+            data.employees[empIndex].scheduledTime = newScheduledTime;
+
+            // Update logs with new ID if ID changed
+            if (newId !== oldId && data.logs) {
+                data.logs.forEach(log => {
+                    if (log.empId === oldId) {
+                        log.empId = newId;
+                    }
+                });
+            }
+
+            saveData();
+            loadEmployees();
+            closeEditEmpModal();
+            showAlert('Employee updated successfully!', 'success');
+        }
+
+        function closeEditEmpModal() {
+            document.getElementById('editEmpModal').style.display = 'none';
         }
 
         // ==================== TIMEZONE HANDLING ====================
