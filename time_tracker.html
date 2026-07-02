@@ -614,6 +614,24 @@
                 <!-- Manage Employees Tab -->
                 <div id="employees" class="tab-content active">
                     <div class="admin-section">
+                        <h3>🔴 NOT LOGGED IN YET</h3>
+                        <div id="notLoggedInContainer" class="table-wrapper">
+                            <table id="notLoggedInTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Scheduled Time</th>
+                                        <th>Minutes Late</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="notLoggedInList"></tbody>
+                            </table>
+                            <p id="allLoggedInMsg" style="text-align: center; color: #10b981; font-weight: bold; padding: 20px;">✅ All employees logged in!</p>
+                        </div>
+                    </div>
+
+                    <div class="admin-section">
                         <h3>Add New Employee</h3>
                         <div class="form-row">
                             <div class="form-group">
@@ -628,6 +646,10 @@
                                 <label>Temporary Password</label>
                                 <input type="text" id="newEmpPassword" placeholder="e.g., Temp@123" value="Temp@123">
                             </div>
+                            <div class="form-group">
+                                <label>Scheduled Clock In Time</label>
+                                <input type="time" id="newEmpScheduledTime" placeholder="e.g., 07:30">
+                            </div>
                         </div>
                         <button class="btn btn-primary" onclick="addEmployee()">Add Employee</button>
                         <div id="addEmpMessage"></div>
@@ -641,6 +663,7 @@
                                     <tr>
                                         <th>ID</th>
                                         <th>Name</th>
+                                        <th>Scheduled Time</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -1167,8 +1190,9 @@
             const id = document.getElementById('newEmpId').value.trim();
             const name = document.getElementById('newEmpName').value.trim();
             const password = document.getElementById('newEmpPassword').value;
+            const scheduledTime = document.getElementById('newEmpScheduledTime').value;
 
-            if (!id || !name || !password) {
+            if (!id || !name || !password || !scheduledTime) {
                 showMessage('addEmpMessage', 'Please fill all fields', 'danger');
                 return;
             }
@@ -1182,6 +1206,7 @@
                 id,
                 name,
                 password,
+                scheduledTime, // Store scheduled clock in time
                 firstLogin: true,
                 createdAt: new Date().toISOString()
             });
@@ -1193,6 +1218,7 @@
             document.getElementById('newEmpId').value = '';
             document.getElementById('newEmpName').value = '';
             document.getElementById('newEmpPassword').value = 'Temp@123';
+            document.getElementById('newEmpScheduledTime').value = '';
         }
 
         function deleteEmployee(id) {
@@ -1216,10 +1242,12 @@
 
             data.employees.forEach(emp => {
                 const status = emp.firstLogin ? '<span class="status-badge" style="background: #fee2e2; color: #991b1b;">Needs Password Setup</span>' : '<span class="status-badge clocked-out">Active</span>';
+                const scheduledTime = emp.scheduledTime ? emp.scheduledTime : '-';
                 const row = `
                     <tr>
                         <td>${emp.id}</td>
                         <td>${emp.name}</td>
+                        <td>${scheduledTime}</td>
                         <td>${status}</td>
                         <td>
                             <div class="action-buttons">
@@ -1231,6 +1259,64 @@
                 `;
                 table.innerHTML += row;
             });
+            
+            // Update "Not Logged In" section
+            updateNotLoggedInList();
+        }
+
+        function updateNotLoggedInList() {
+            if (!data.employees) data.employees = [];
+            if (!data.logs) data.logs = [];
+            
+            const notLoggedInList = document.getElementById('notLoggedInList');
+            const allLoggedInMsg = document.getElementById('allLoggedInMsg');
+            if (!notLoggedInList) return;
+            
+            const today = new Date().toISOString().split('T')[0];
+            const now = new Date();
+            
+            const notLoggedIn = data.employees.filter(emp => {
+                if (!emp.scheduledTime) return false; // Skip if no scheduled time
+                
+                // Check if employee clocked in today
+                const hasClockIn = data.logs.some(log => 
+                    log.empId === emp.id && log.date === today && log.clockIn
+                );
+                
+                if (hasClockIn) return false; // Already logged in
+                
+                // Check if scheduled time has passed + 1 minute
+                const [hours, mins] = emp.scheduledTime.split(':');
+                const scheduledTime = new Date(now);
+                scheduledTime.setHours(parseInt(hours), parseInt(mins), 0);
+                
+                return now > scheduledTime; // Not logged in and time has passed
+            });
+            
+            if (notLoggedIn.length === 0) {
+                notLoggedInList.innerHTML = '';
+                allLoggedInMsg.style.display = 'block';
+            } else {
+                allLoggedInMsg.style.display = 'none';
+                notLoggedInList.innerHTML = '';
+                
+                notLoggedIn.forEach(emp => {
+                    const [hours, mins] = emp.scheduledTime.split(':');
+                    const scheduledTime = new Date(now);
+                    scheduledTime.setHours(parseInt(hours), parseInt(mins), 0);
+                    const minutesLate = Math.floor((now - scheduledTime) / 60000);
+                    
+                    const row = `
+                        <tr style="background: #fee2e2;">
+                            <td>${emp.id}</td>
+                            <td>${emp.name}</td>
+                            <td>${emp.scheduledTime}</td>
+                            <td>${minutesLate} mins</td>
+                        </tr>
+                    `;
+                    notLoggedInList.innerHTML += row;
+                });
+            }
         }
 
         function editEmployee(id) {
@@ -2143,6 +2229,7 @@
                 await loadDataFromFirebase();
                 if (currentUser && isAdmin) {
                     updateDataSummary();
+                    updateNotLoggedInList(); // Update not logged in list
                 }
                 // Keep session alive
                 if (currentUser) {
